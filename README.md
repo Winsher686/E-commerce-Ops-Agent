@@ -15,12 +15,7 @@
 
 ---
 
-## 关于本项目（来源与本人贡献）
-
-本项目基于开源项目 **Multi Agent Orchestration**（MIT，作者 Vansh-codi）改造而来：
-原项目是一个通用多 Agent 任务执行平台，我将**应用场景重构为跨境电商运营中台**，
-在原技术栈（LangGraph / FastAPI / PostgreSQL / Redis / Docker / WebSocket）之上重新设计了
-Agent 拓扑、编排逻辑、领域工具集、审批护栏、数据模型与文档。
+## 关于本项目
 
 **本人完成的主要工作**：
 
