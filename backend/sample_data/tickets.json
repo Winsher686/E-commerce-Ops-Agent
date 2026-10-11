@@ -1,0 +1,7 @@
+[
+  {"ticket_no": "T-2001", "platform": "shopee", "language": "th", "customer": "anon_th_01", "message": "สวัสดี ฉันยังไม่ได้รับพัสดุของฉัน (Hello, I haven't received my package)", "category": "物流", "sentiment": "negative", "status": "open", "created_at": "2026-10-08T09:00:00Z"},
+  {"ticket_no": "T-2002", "platform": "lazada", "language": "en", "customer": "anon_id_02", "message": "I want a refund, my order is very delayed and I am disappointed", "category": "退换货", "sentiment": "negative", "status": "open", "created_at": "2026-10-08T10:30:00Z"},
+  {"ticket_no": "T-2003", "platform": "shopee", "language": "vi", "customer": "anon_vn_03", "message": "Sản phẩm rất tốt, cảm ơn bạn (The product is great, thank you)", "category": "产品咨询", "sentiment": "positive", "status": "open", "created_at": "2026-10-08T11:10:00Z"},
+  {"ticket_no": "T-2004", "platform": "amazon", "language": "en", "customer": "anon_sg_04", "message": "How to use this power bank? What is the material?", "category": "产品咨询", "sentiment": "neutral", "status": "open", "created_at": "2026-10-08T12:00:00Z"},
+  {"ticket_no": "T-2005", "platform": "shopee", "language": "id", "customer": "anon_my_05", "message": "Ini komplain! Barang tidak sesuai dan pelayanan buruk (Complaint! Item mismatch and bad service)", "category": "投诉", "sentiment": "negative", "status": "open", "created_at": "2026-10-08T13:20:00Z"}
+]

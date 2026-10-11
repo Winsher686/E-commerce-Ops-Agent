@@ -1,0 +1,15 @@
+[
+  {"sku": "SKU-PHONE-CASE-01", "platform": "shopee", "seller": "CaseKing", "price": 5.9, "currency": "USD", "rating": 4.7, "sold": 3200, "url": "https://shopee.example/p/1"},
+  {"sku": "SKU-PHONE-CASE-01", "platform": "lazada", "seller": "PhoneHub", "price": 7.5, "currency": "USD", "rating": 4.5, "sold": 1800, "url": "https://lazada.example/p/1"},
+  {"sku": "SKU-PHONE-CASE-01", "platform": "shopee", "seller": "StyleCase", "price": 6.4, "currency": "USD", "rating": 4.6, "sold": 2400, "url": "https://shopee.example/p/2"},
+
+  {"sku": "SKU-CHARGER-20W-02", "platform": "shopee", "seller": "PowerMax", "price": 11.9, "currency": "USD", "rating": 4.8, "sold": 5100, "url": "https://shopee.example/p/3"},
+  {"sku": "SKU-CHARGER-20W-02", "platform": "lazada", "seller": "FastCharge", "price": 13.5, "currency": "USD", "rating": 4.6, "sold": 3300, "url": "https://lazada.example/p/3"},
+  {"sku": "SKU-CHARGER-20W-02", "platform": "amazon", "seller": "ChargePro", "price": 15.9, "currency": "USD", "rating": 4.7, "sold": 900, "url": "https://amazon.example/p/3"},
+
+  {"sku": "SKU-EARBUDS-A3-03", "platform": "shopee", "seller": "SoundGo", "price": 21.0, "currency": "USD", "rating": 4.4, "sold": 2100, "url": "https://shopee.example/p/4"},
+  {"sku": "SKU-EARBUDS-A3-03", "platform": "lazada", "seller": "AudioLab", "price": 25.9, "currency": "USD", "rating": 4.5, "sold": 1500, "url": "https://lazada.example/p/4"},
+
+  {"sku": "SKU-POWERBANK-10K-04", "platform": "shopee", "seller": "VoltGo", "price": 16.5, "currency": "USD", "rating": 4.6, "sold": 2700, "url": "https://shopee.example/p/5"},
+  {"sku": "SKU-POWERBANK-10K-04", "platform": "amazon", "seller": "PowerBankHQ", "price": 19.9, "currency": "USD", "rating": 4.8, "sold": 1200, "url": "https://amazon.example/p/5"}
+]

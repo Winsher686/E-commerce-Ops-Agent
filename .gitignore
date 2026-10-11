@@ -1,0 +1,134 @@
+# ── Secrets (NEVER commit these) ────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+# ── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# ── Node / Next.js ───────────────────────────────────────────
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-error.log*
+
+# ── Docker ───────────────────────────────────────────────────
+*.log
+
+# ── VS Code ──────────────────────────────────────────────────
+# Keep .vscode/ tracked so team shares settings,
+# but ignore personal overrides:
+.vscode/settings.personal.json
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+# Runtime uploads
+uploads/
+generated_code/
+generated_sandbox/
+
+# Database / vector stores
+*.db
+*.sqlite
+*.sqlite3
+chroma_db/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python coverage
+.coverage
+htmlcov/
+
+# Logs
+logs/
+*.log
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/settings.personal.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# LangGraph / Agent outputs
+*.jsonl
+.vscode/
+*.png
+debug_capture.png
+.platform-token
+token.json
+auth.json
+db.sqlite
+users.db
+backup.sql
+desktop/dist/
+desktop/release/
+debug_capture.png
+screenshots/
+captures/
+# Python
+.python-version
+.ipynb_checkpoints/
+
+# Secrets
+*.pem
+*.key
+*.crt
+credentials.json
+secrets/
+
+# Runtime / caches
+*.pid
+*.lock
+cache/
+checkpoints/
+state/
+session_data/
+
+# OCR / Vision
+captures/
+screenshots/
+ocr_cache/
+vision_cache/
+
+# RAG / Embeddings
+vector_store/
+faiss/
+faiss_index/
+embeddings_cache/
+
+# Test outputs
+test_outputs/
+playwright-report/
+
+# Local configs
+config.local.py
+settings.local.json
+
+# Artifacts
+artifacts/
+exports/
+reports/

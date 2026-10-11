@@ -1,0 +1,63 @@
+[
+  {
+    "order_id": "O-1001",
+    "tracking_no": "TH123456789",
+    "carrier": "J&T",
+    "status": "lost",
+    "events": [
+      {"time": "2026-10-03T12:00:00Z", "status": "picked_up", "location": "BKK", "detail": "已揽收"},
+      {"time": "2026-10-05T09:00:00Z", "status": "in_transit", "location": "BKK Hub", "detail": "运输中"},
+      {"time": "2026-10-08T18:00:00Z", "status": "lost", "location": "BKK", "detail": "包裹丢失，确认理赔"}
+    ]
+  },
+  {
+    "order_id": "O-1002",
+    "tracking_no": "ID987654321",
+    "carrier": "Ninja Van",
+    "status": "delayed",
+    "events": [
+      {"time": "2026-10-04T13:00:00Z", "status": "picked_up", "location": "JKT", "detail": "已揽收"},
+      {"time": "2026-10-09T10:00:00Z", "status": "delayed", "location": "JKT Hub", "detail": "转运延误"}
+    ]
+  },
+  {
+    "order_id": "O-1003",
+    "tracking_no": "VN555000111",
+    "carrier": "GHN",
+    "status": "delivered",
+    "events": [
+      {"time": "2026-10-02T10:00:00Z", "status": "picked_up", "location": "SGN", "detail": "已揽收"},
+      {"time": "2026-10-04T15:00:00Z", "status": "delivered", "location": "SGN", "detail": "已签收"}
+    ]
+  },
+  {
+    "order_id": "O-1004",
+    "tracking_no": "SG222333444",
+    "carrier": "SingPost",
+    "status": "returned",
+    "events": [
+      {"time": "2026-10-05T09:30:00Z", "status": "picked_up", "location": "SIN", "detail": "已揽收"},
+      {"time": "2026-10-07T11:00:00Z", "status": "returned", "location": "SIN", "detail": "买家拒收，退回"}
+    ]
+  },
+  {
+    "order_id": "O-1005",
+    "tracking_no": "MY777888999",
+    "carrier": "Pos Laju",
+    "status": "lost",
+    "events": [
+      {"time": "2026-10-06T10:30:00Z", "status": "picked_up", "location": "KUL", "detail": "已揽收"},
+      {"time": "2026-10-09T20:00:00Z", "status": "lost", "location": "KUL", "detail": "高价值件丢失"}
+    ]
+  },
+  {
+    "order_id": "O-1006",
+    "tracking_no": "PH101010101",
+    "carrier": "LBC",
+    "status": "address_error",
+    "events": [
+      {"time": "2026-10-07T17:00:00Z", "status": "picked_up", "location": "MNL", "detail": "已揽收"},
+      {"time": "2026-10-08T09:00:00Z", "status": "address_error", "location": "MNL", "detail": "地址错误，无法派送"}
+    ]
+  }
+]

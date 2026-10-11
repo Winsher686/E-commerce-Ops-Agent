@@ -1,0 +1,4 @@
+[
+  {"sku": "SKU-PHONE-CASE-01", "old_price": 6.4, "new_price": 6.0, "currency": "USD", "change_pct": -6.25, "reason": "库存高企，降价促清"},
+  {"sku": "SKU-CHARGER-20W-02", "old_price": 12.5, "new_price": 12.9, "currency": "USD", "change_pct": 3.2, "reason": "近 7 天热销，小幅上浮"}
+]

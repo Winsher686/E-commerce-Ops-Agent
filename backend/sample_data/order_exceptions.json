@@ -1,0 +1,7 @@
+[
+  {"order_id": "O-1001", "platform": "shopee", "exception_type": "丢件", "severity": "high", "detail": {"tracking_no": "TH123456789"}, "status": "open"},
+  {"order_id": "O-1002", "platform": "lazada", "exception_type": "超时未达", "severity": "medium", "detail": {"tracking_no": "ID987654321"}, "status": "open"},
+  {"order_id": "O-1004", "platform": "amazon", "exception_type": "拒收退回", "severity": "medium", "detail": {"tracking_no": "SG222333444"}, "status": "open"},
+  {"order_id": "O-1005", "platform": "shopee", "exception_type": "丢件", "severity": "high", "detail": {"tracking_no": "MY777888999", "high_value": true}, "status": "open"},
+  {"order_id": "O-1006", "platform": "lazada", "exception_type": "地址错误", "severity": "low", "detail": {"tracking_no": "PH101010101"}, "status": "open"}
+]

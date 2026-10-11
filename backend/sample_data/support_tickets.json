@@ -1,0 +1,5 @@
+[
+  {"ticket_no": "T-2001", "platform": "shopee", "language": "th", "customer": "anon_th_01", "message": "包裹未收到", "category": "物流", "sentiment": "negative", "draft_reply": "尊敬的客户，我们已核查物流并为您加急处理，预计 2 日内送达。", "status": "open", "created_at": "2026-10-08T09:00:00Z"},
+  {"ticket_no": "T-2002", "platform": "lazada", "language": "en", "customer": "anon_id_02", "message": "Order delayed, request refund", "category": "退换货", "sentiment": "negative", "draft_reply": "We are sorry for the delay; we have submitted a refund request for you.", "status": "open", "created_at": "2026-10-08T10:30:00Z"},
+  {"ticket_no": "T-2005", "platform": "shopee", "language": "id", "customer": "anon_my_05", "message": "Complaint about mismatch", "category": "投诉", "sentiment": "negative", "draft_reply": "We sincerely apologize and have escalated this to our supervisor.", "status": "open", "created_at": "2026-10-08T13:20:00Z"}
+]

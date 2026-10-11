@@ -1,0 +1,6 @@
+[
+  {"sku": "SKU-PHONE-CASE-01", "warehouse": "SEA-01", "quantity": 420, "safety_stock": 100},
+  {"sku": "SKU-CHARGER-20W-02", "warehouse": "SEA-01", "quantity": 260, "safety_stock": 80},
+  {"sku": "SKU-EARBUDS-A3-03", "warehouse": "SEA-02", "quantity": 12, "safety_stock": 30},
+  {"sku": "SKU-POWERBANK-10K-04", "warehouse": "SEA-02", "quantity": 180, "safety_stock": 50}
+]

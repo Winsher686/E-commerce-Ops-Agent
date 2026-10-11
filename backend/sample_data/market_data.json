@@ -1,0 +1,52 @@
+[
+  {
+    "market": "SEA",
+    "category": "phone_accessories",
+    "subcategory": "phone_case",
+    "demand_index": 82.0,
+    "growth_pct": 12.5,
+    "avg_price_usd": 6.8,
+    "seasonality": "Q4 旺季（11-12 月）",
+    "notes": "东南亚手机壳需求旺盛，个性化定制增速明显"
+  },
+  {
+    "market": "SEA",
+    "category": "phone_accessories",
+    "subcategory": "charger",
+    "demand_index": 76.0,
+    "growth_pct": 6.2,
+    "avg_price_usd": 12.5,
+    "seasonality": "全年稳定",
+    "notes": "20W 快充为增长最快的子类目"
+  },
+  {
+    "market": "SEA",
+    "category": "phone_accessories",
+    "subcategory": "earbuds",
+    "demand_index": 68.0,
+    "growth_pct": -3.1,
+    "avg_price_usd": 24.0,
+    "seasonality": "促销节点波动大",
+    "notes": "竞争激烈，价格战明显"
+  },
+  {
+    "market": "SEA",
+    "category": "phone_accessories",
+    "subcategory": "power_bank",
+    "demand_index": 71.0,
+    "growth_pct": 4.8,
+    "avg_price_usd": 18.0,
+    "seasonality": "出行旺季上升",
+    "notes": "10K 容量为主流"
+  },
+  {
+    "market": "TH",
+    "category": "phone_accessories",
+    "subcategory": "phone_case",
+    "demand_index": 79.0,
+    "growth_pct": 9.0,
+    "avg_price_usd": 7.2,
+    "seasonality": "Q4 旺季",
+    "notes": "泰国市场定制壳需求高"
+  }
+]

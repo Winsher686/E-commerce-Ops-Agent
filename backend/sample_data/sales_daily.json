@@ -1,0 +1,12 @@
+[
+  {"sku": "SKU-PHONE-CASE-01", "market": "SEA", "sale_date": "2026-10-01", "units": 120, "revenue_usd": 720.0},
+  {"sku": "SKU-PHONE-CASE-01", "market": "SEA", "sale_date": "2026-10-02", "units": 135, "revenue_usd": 810.0},
+  {"sku": "SKU-PHONE-CASE-01", "market": "SEA", "sale_date": "2026-10-03", "units": 110, "revenue_usd": 660.0},
+  {"sku": "SKU-CHARGER-20W-02", "market": "SEA", "sale_date": "2026-10-01", "units": 80, "revenue_usd": 960.0},
+  {"sku": "SKU-CHARGER-20W-02", "market": "SEA", "sale_date": "2026-10-02", "units": 92, "revenue_usd": 1104.0},
+  {"sku": "SKU-CHARGER-20W-02", "market": "SEA", "sale_date": "2026-10-03", "units": 76, "revenue_usd": 912.0},
+  {"sku": "SKU-EARBUDS-A3-03", "market": "SEA", "sale_date": "2026-10-01", "units": 30, "revenue_usd": 1350.0},
+  {"sku": "SKU-EARBUDS-A3-03", "market": "SEA", "sale_date": "2026-10-02", "units": 24, "revenue_usd": 1080.0},
+  {"sku": "SKU-POWERBANK-10K-04", "market": "SEA", "sale_date": "2026-10-01", "units": 60, "revenue_usd": 1080.0},
+  {"sku": "SKU-POWERBANK-10K-04", "market": "SEA", "sale_date": "2026-10-02", "units": 55, "revenue_usd": 990.0}
+]
