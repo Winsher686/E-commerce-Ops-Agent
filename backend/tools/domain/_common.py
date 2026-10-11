@@ -10,8 +10,9 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from collections.abc import Awaitable, Callable
 from functools import lru_cache
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any
 
 import httpx
 
@@ -28,15 +29,15 @@ def load_sample(name: str) -> Any:
     path = os.path.abspath(os.path.join(SAMPLE_DIR, f"{name}.json"))
     if not os.path.exists(path):
         return [] if name.endswith("s") else {}
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
 async def http_get(
     url: str,
-    params: Optional[dict] = None,
-    headers: Optional[dict] = None,
-    timeout: Optional[int] = None,
+    params: dict | None = None,
+    headers: dict | None = None,
+    timeout: int | None = None,
 ) -> dict:
     """真实 API GET（mock 模式不会调用）。"""
     async with httpx.AsyncClient(timeout=timeout or settings.tool_timeout_seconds) as client:
@@ -47,9 +48,9 @@ async def http_get(
 
 async def http_post(
     url: str,
-    json_body: Optional[dict] = None,
-    headers: Optional[dict] = None,
-    timeout: Optional[int] = None,
+    json_body: dict | None = None,
+    headers: dict | None = None,
+    timeout: int | None = None,
 ) -> dict:
     """真实 API POST（mock 模式不会调用）。"""
     async with httpx.AsyncClient(timeout=timeout or settings.tool_timeout_seconds) as client:
@@ -62,7 +63,7 @@ async def run_tool(
     name: str,
     fn: Callable[[], Awaitable[Any]],
     fallback: Any = None,
-) -> tuple[Any, Optional[str]]:
+) -> tuple[Any, str | None]:
     """
     工具执行包装器：带超时与重试。
     返回 (结果, 错误信息)；全部失败时返回 (fallback, error)。
@@ -70,7 +71,7 @@ async def run_tool(
     Agent 的失败降级策略统一依赖此封装：调用失败时获得 fallback，
     并在 error 中拿到原因，用于写入执行记录与消息提示。
     """
-    last_err: Optional[str] = None
+    last_err: str | None = None
     attempts = 1 + max(0, settings.tool_max_retries)
 
     for i in range(attempts):

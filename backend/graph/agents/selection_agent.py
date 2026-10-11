@@ -8,8 +8,8 @@
 #  决策依据：市场需求指数与增长、竞品价格分布、单位毛利与盈亏平衡价
 #  失败降级：市场数据缺失 → 降低置信度并标注；竞品为空 → 改用需求驱动建议
 # ──────────────────────────────────────────────────────────────
-from config import get_settings
 from bus import events
+from config import get_settings
 from graph.agents._base import (
     build_result,
     call_tool,
@@ -25,7 +25,7 @@ from graph.state import AgentState
 settings = get_settings()
 
 SELECTION_SYSTEM = """
-你是跨境电商的资深选品分析师。请基于给定的市场数据、竞品价格与利润测算，
+你是电商的资深选品分析师。请基于给定的市场数据、竞品价格与利润测算，
 输出一份结构化的选品分析报告，包含：
 1) 市场机会：需求指数、增长趋势、季节性与重点子类目
 2) 竞品格局：价格区间、竞争激烈程度
@@ -52,20 +52,35 @@ async def selection_node(state: AgentState) -> dict:
     await emit(events.emit_agent_started, task_id, agent=AGENT, subtask_id=task.get("id"))
 
     # ── 工具调用 ──────────────────────────────────────────────
-    md, md_err = await call_tool("market_data", {
-        "market": market, "category": category, "task_id": task_id,
-    })
-    cp, cp_err = await call_tool("competitor_price", {
-        "sku": sku or category, "market": market, "task_id": task_id,
-    })
+    md, md_err = await call_tool(
+        "market_data",
+        {
+            "market": market,
+            "category": category,
+            "task_id": task_id,
+        },
+    )
+    cp, cp_err = await call_tool(
+        "competitor_price",
+        {
+            "sku": sku or category,
+            "market": market,
+            "task_id": task_id,
+        },
+    )
 
     # 竞品均价 → 利润测算（成本缺失时按均价 45% 估算）
     comp_avg = float(getattr(cp, "avg_price", 0) or 0)
     est_cost = cost_usd or round(comp_avg * 0.45, 2) or 5.0
     est_price = comp_avg or round(est_cost * 1.8, 2)
-    profit, _ = await call_tool("profit_calculator", {
-        "cost_usd": est_cost, "price_usd": est_price, "task_id": task_id,
-    })
+    profit, _ = await call_tool(
+        "profit_calculator",
+        {
+            "cost_usd": est_cost,
+            "price_usd": est_price,
+            "task_id": task_id,
+        },
+    )
 
     # ── 降级提示 ──────────────────────────────────────────────
     degraded = []
@@ -75,29 +90,41 @@ async def selection_node(state: AgentState) -> dict:
         degraded.append(f"竞品数据缺失({cp_err})，改用需求驱动建议")
 
     user_prompt = f"""
-运营子任务：{task.get('task')}
+运营子任务：{task.get("task")}
 目标市场：{market}
 品类/关键词：{category}
-SKU：{sku or '（未指定）'}
+SKU：{sku or "（未指定）"}
 
-{ dependency_context(state, task) }
+{dependency_context(state, task)}
 
 市场数据：{to_json(md)}
 竞品价格：{to_json(cp)}
 利润测算（示例成本 {est_cost}，示例售价 {est_price}）：{to_json(profit)}
-数据降级说明：{ '；'.join(degraded) if degraded else '无' }
+数据降级说明：{"；".join(degraded) if degraded else "无"}
 
 请输出选品分析报告与明确建议。
 """
 
     text, tokens = await synthesize(SELECTION_SYSTEM, user_prompt, state["user_id"])
 
-    await emit(events.emit_agent_completed, task_id, agent=AGENT,
-               subtask_id=task.get("id"), output={"degraded": degraded})
+    await emit(
+        events.emit_agent_completed,
+        task_id,
+        agent=AGENT,
+        subtask_id=task.get("id"),
+        output={"degraded": degraded},
+    )
 
     return build_result(
-        state, task, text,
+        state,
+        task,
+        text,
         tokens_used=tokens,
-        executed_ops=[{"agent": AGENT, "subtask_id": task.get("id"), "tools": [
-            "market_data", "competitor_price", "profit_calculator"]}],
+        executed_ops=[
+            {
+                "agent": AGENT,
+                "subtask_id": task.get("id"),
+                "tools": ["market_data", "competitor_price", "profit_calculator"],
+            }
+        ],
     )

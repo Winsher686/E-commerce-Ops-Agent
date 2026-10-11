@@ -28,8 +28,12 @@ async def run(inp: RefundInput) -> RefundOutput:
 
     data = await http_get(
         f"{settings.refund_api_base}/v1/refund",
-        params={"order_id": inp.order_id, "amount": inp.amount_usd,
-                "reason": inp.reason, "method": inp.method},
+        params={
+            "order_id": inp.order_id,
+            "amount": inp.amount_usd,
+            "reason": inp.reason,
+            "method": inp.method,
+        },
         headers={"Authorization": f"Bearer {settings.refund_api_key}"},
     )
     return RefundOutput(

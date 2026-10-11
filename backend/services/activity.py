@@ -2,11 +2,8 @@
 
 from services.db import get_db
 
-async def log_activity(
-    activity_type: str,
-    title: str,
-    description: str = ""
-):
+
+async def log_activity(activity_type: str, title: str, description: str = ""):
     pool = await get_db()
 
     async with pool.acquire() as conn:

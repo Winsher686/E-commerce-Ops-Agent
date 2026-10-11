@@ -1,12 +1,12 @@
 # backend/tools/domain/schemas.py
 # ──────────────────────────────────────────────────────────────
-#  跨境电商运营中台 —— 工具输入/输出 Schema（Pydantic）
+#  电商运营中台 —— 工具输入/输出 Schema（Pydantic）
 #  所有领域工具的 IO 均以此为准，Agent 通过 schema 与工具解耦。
 # ──────────────────────────────────────────────────────────────
 from __future__ import annotations
 
-from datetime import date, datetime
-from typing import Any, Literal, Optional
+from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 class ToolBase(BaseModel):
     """工具基类：统一携带任务上下文，便于记录与可观测。"""
 
-    task_id: Optional[str] = Field(default=None, description="所属运营任务 ID")
+    task_id: str | None = Field(default=None, description="所属运营任务 ID")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -118,8 +118,8 @@ class ProfitCalcOutput(ToolBase):
 # ══════════════════════════════════════════════════════════════
 class OrderQueryInput(ToolBase):
     order_ids: list[str] = Field(default_factory=list)
-    platform: Optional[str] = None
-    status: Optional[str] = None
+    platform: str | None = None
+    status: str | None = None
     limit: int = 50
 
 
@@ -146,8 +146,8 @@ class OrderQueryOutput(ToolBase):
 #  6. 物流
 # ══════════════════════════════════════════════════════════════
 class LogisticsTrackInput(ToolBase):
-    order_id: Optional[str] = None
-    tracking_no: Optional[str] = None
+    order_id: str | None = None
+    tracking_no: str | None = None
 
 
 class LogisticsEvent(BaseModel):
@@ -172,9 +172,9 @@ class LogisticsTrackOutput(ToolBase):
 #  7. 库存
 # ══════════════════════════════════════════════════════════════
 class InventoryQueryInput(ToolBase):
-    sku: Optional[str] = None
+    sku: str | None = None
     sku_list: list[str] = Field(default_factory=list)
-    warehouse: Optional[str] = None
+    warehouse: str | None = None
 
 
 class InventoryItem(BaseModel):
@@ -244,9 +244,9 @@ class TranslateOutput(ToolBase):
 #  10. 客服工单
 # ══════════════════════════════════════════════════════════════
 class TicketListInput(ToolBase):
-    status: Optional[str] = None
-    category: Optional[str] = None
-    language: Optional[str] = None
+    status: str | None = None
+    category: str | None = None
+    language: str | None = None
     limit: int = 50
 
 
@@ -326,8 +326,8 @@ class NotifyOutput(ToolBase):
 #  13. 数据库查询（受控只读）
 # ══════════════════════════════════════════════════════════════
 class DBQueryInput(ToolBase):
-    sql: Optional[str] = Field(default=None, description="只读 SELECT 语句")
-    table: Optional[str] = None
+    sql: str | None = Field(default=None, description="只读 SELECT 语句")
+    table: str | None = None
     filters: dict[str, Any] = Field(default_factory=dict)
     limit: int = 100
 
@@ -345,8 +345,8 @@ ApprovalLevel = Literal["auto", "supervisor", "manager"]
 
 
 class ApprovalRequest(BaseModel):
-    task_id: Optional[str] = None
-    subtask_id: Optional[str] = None
+    task_id: str | None = None
+    subtask_id: str | None = None
     agent: str
     operation_type: str
     payload: dict[str, Any] = Field(default_factory=dict)
@@ -358,6 +358,6 @@ class ApprovalRequest(BaseModel):
 class ApprovalRecord(ApprovalRequest):
     id: str
     status: Literal["pending", "approved", "rejected", "cancelled"] = "pending"
-    decided_by: Optional[str] = None
-    decided_at: Optional[datetime] = None
-    requested_at: Optional[datetime] = None
+    decided_by: str | None = None
+    decided_at: datetime | None = None
+    requested_at: datetime | None = None

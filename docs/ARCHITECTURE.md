@@ -1,4 +1,4 @@
-# 架构说明 —— 跨境电商运营中台
+# 架构说明 —— 电商运营中台
 
 ## 1. 分层架构
 
@@ -28,5 +28,5 @@
 ## 5. 可观测性
 
 - 每个节点执行写入 `agent_executions`（输入/输出/文本/状态）。
-- 事件经 `bus/events.py` 发布到 `task:{task_id}`，WebSocket 转发前端。
+- 事件经 `bus/events.py` 发布到 `task:{task_id}`，WebSocket 实时推送到客户端。
 - `tool.called` 事件记录工具调用，便于统计成功率与降级率。

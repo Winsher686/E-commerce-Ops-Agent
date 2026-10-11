@@ -30,8 +30,9 @@ async def run(inp: FXRateInput) -> FXRateOutput:
         rate = _REFERENCE.get((base, quote))
         if rate is None:
             rate = settings.default_fx_usd_cny if (base, quote) == ("USD", "CNY") else 1.0
-        return FXRateOutput(task_id=inp.task_id, base=base, quote=quote, rate=rate,
-                            as_of="mock", source="mock")
+        return FXRateOutput(
+            task_id=inp.task_id, base=base, quote=quote, rate=rate, as_of="mock", source="mock"
+        )
 
     # ── 真实 API 适配器 ───────────────────────────────────────
     try:
@@ -40,10 +41,22 @@ async def run(inp: FXRateInput) -> FXRateOutput:
             params={"base": base, "quote": quote},
             headers={"Authorization": f"Bearer {settings.fx_api_key}"},
         )
-        return FXRateOutput(task_id=inp.task_id, base=base, quote=quote,
-                            rate=float(data["rate"]), as_of=data.get("as_of", ""), source="api")
+        return FXRateOutput(
+            task_id=inp.task_id,
+            base=base,
+            quote=quote,
+            rate=float(data["rate"]),
+            as_of=data.get("as_of", ""),
+            source="api",
+        )
     except Exception:
         # 降级：使用参考汇率
         rate = _REFERENCE.get((base, quote), settings.default_fx_usd_cny)
-        return FXRateOutput(task_id=inp.task_id, base=base, quote=quote, rate=rate,
-                            as_of="fallback", source="fallback")
+        return FXRateOutput(
+            task_id=inp.task_id,
+            base=base,
+            quote=quote,
+            rate=rate,
+            as_of="fallback",
+            source="fallback",
+        )

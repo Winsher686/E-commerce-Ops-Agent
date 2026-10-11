@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 
@@ -32,7 +32,10 @@ async def create_task_row(user_id: str, task_type: str, goal: str, params: dict)
             VALUES ($1,$2,$3,$4::jsonb,'created')
             RETURNING id
             """,
-            str(user_id), task_type, goal, json.dumps(params, ensure_ascii=False),
+            str(user_id),
+            task_type,
+            goal,
+            json.dumps(params, ensure_ascii=False),
         )
     return str(row["id"])
 
@@ -52,7 +55,7 @@ async def update_task_status(task_id: str, status: str, **cols) -> None:
         await conn.execute(f"UPDATE operations_tasks SET {', '.join(sets)} WHERE id = $1", *args)
 
 
-async def get_task_row(task_id: str) -> Optional[dict]:
+async def get_task_row(task_id: str) -> dict | None:
     pool = await get_db()
     if pool is None:
         return None
@@ -72,7 +75,9 @@ async def list_agent_executions(task_id: str) -> list[dict]:
     return [_row_to_dict(r) for r in rows]
 
 
-async def _write_execution(task_id: str, node: str, output: dict, status: str = "completed") -> None:
+async def _write_execution(
+    task_id: str, node: str, output: dict, status: str = "completed"
+) -> None:
     pool = await get_db()
     if pool is None:
         return
@@ -86,7 +91,10 @@ async def _write_execution(task_id: str, node: str, output: dict, status: str = 
                 (task_id, subtask_id, agent, status, output, output_text, finished_at)
             VALUES ($1,$2,$3,$4,$5::jsonb,$6,NOW())
             """,
-            task_id, subtask_id, node, status,
+            task_id,
+            subtask_id,
+            node,
+            status,
             json.dumps(output, ensure_ascii=False, default=str),
             _extract_text(output),
         )
@@ -115,12 +123,17 @@ def _row_to_dict(row) -> dict:
 #  图驱动
 # ══════════════════════════════════════════════════════════════
 DOMAIN_NODES = {
-    "selection", "order_logistics", "customer_service", "pricing", "weekly_report",
+    "selection",
+    "order_logistics",
+    "customer_service",
+    "pricing",
+    "weekly_report",
 }
 
 
-def _initial_state(task_id: str, goal: str, task_type: str, params: dict,
-                   context_files: list, user_id: str) -> dict:
+def _initial_state(
+    task_id: str, goal: str, task_type: str, params: dict, context_files: list, user_id: str
+) -> dict:
     return {
         "goal": goal,
         "user_id": user_id,
@@ -134,6 +147,7 @@ def _initial_state(task_id: str, goal: str, task_type: str, params: dict,
         "next": "planner",
         "approved": False,
         "error": None,
+        "stuck_rounds": 0,
         "hitl_enabled": settings.hitl_enabled,
         "pending_approval": None,
         "approvals": [],
@@ -143,15 +157,16 @@ def _initial_state(task_id: str, goal: str, task_type: str, params: dict,
     }
 
 
-async def run_task(task_id: str, goal: str, task_type: str, params: dict,
-                   context_files: list, user_id: str, run_id: str | None = None) -> dict:
-    """
-    执行运营任务（在后台任务中调用）。完成后返回汇总 dict。
-    run_id 非空时，额外把兼容旧前端的 {node, messages, approved} 事件
-    发布到 run:{run_id} 频道（供 /ws/{run_id} 使用）。
-    """
+async def run_task(
+    task_id: str,
+    goal: str,
+    task_type: str,
+    params: dict,
+    context_files: list,
+    user_id: str,
+) -> dict:
+    """执行运营任务（在后台任务中调用）。完成后返回汇总 dict。"""
     from graph.build_graph import GRAPH
-    from bus.redis_bus import publish_event, channel_for_run
 
     state = _initial_state(task_id, goal, task_type, params, context_files, user_id)
     config = {"configurable": {"thread_id": task_id}}
@@ -167,7 +182,7 @@ async def run_task(task_id: str, goal: str, task_type: str, params: dict,
     acc_tokens = 0
     pending_approval = None
     approved = False
-    error: Optional[str] = None
+    error: str | None = None
 
     try:
         async for chunk in GRAPH.astream(state, config=config):
@@ -181,7 +196,9 @@ async def run_task(task_id: str, goal: str, task_type: str, params: dict,
                     acc_results.update(output["results"])
                 if output.get("plan"):
                     acc_plan = output["plan"]
-                    await update_task_status(task_id, "running", dag=json.dumps(acc_plan, ensure_ascii=False))
+                    await update_task_status(
+                        task_id, "running", dag=json.dumps(acc_plan, ensure_ascii=False)
+                    )
                     await events.emit_task_decomposed(task_id, dag=acc_plan)
                 if output.get("executed_ops"):
                     acc_ops.extend(output["executed_ops"])
@@ -200,21 +217,10 @@ async def run_task(task_id: str, goal: str, task_type: str, params: dict,
                 await _write_execution(task_id, node, output)
                 if node in DOMAIN_NODES:
                     await events.emit_agent_completed(
-                        task_id, agent=node,
+                        task_id,
+                        agent=node,
                         subtask_id=output.get("subtask_id") if isinstance(output, dict) else None,
                     )
-
-                # 兼容旧前端的轻量事件流
-                if run_id:
-                    try:
-                        await publish_event(channel_for_run(run_id), {
-                            "node": node,
-                            "messages": [_extract_text(output)] if _extract_text(output) else [],
-                            "approved": bool(output.get("approved")),
-                            "plan": output.get("plan"),
-                        })
-                    except Exception:  # noqa: BLE001
-                        pass
 
         # ── 收尾 ──────────────────────────────────────────────
         if pending_approval:
@@ -231,7 +237,8 @@ async def run_task(task_id: str, goal: str, task_type: str, params: dict,
             "executed_ops": acc_ops,
         }
         await update_task_status(
-            task_id, status,
+            task_id,
+            status,
             result=json.dumps(result, ensure_ascii=False, default=str),
             tokens_used=acc_tokens,
             error=error,
@@ -246,23 +253,12 @@ async def run_task(task_id: str, goal: str, task_type: str, params: dict,
         if pending_approval:
             await events.emit_approval_requested(task_id, approval=pending_approval)
 
-        if run_id:
-            try:
-                await publish_event(channel_for_run(run_id), {"type": "done"})
-            except Exception:  # noqa: BLE001
-                pass
-
         return {"status": status, "approved": approved, "pending_approval": pending_approval}
 
     except Exception as e:  # noqa: BLE001
         log.error("task_run_failed", task_id=task_id, error=str(e))
         await update_task_status(task_id, "failed", error=str(e))
         await events.emit_task_failed(task_id, error=str(e))
-        if run_id:
-            try:
-                await publish_event(channel_for_run(run_id), {"node": "system", "messages": [], "error": str(e)})
-            except Exception:  # noqa: BLE001
-                pass
         return {"status": "failed", "error": str(e)}
 
 
@@ -285,7 +281,8 @@ async def add_preapproval(task_id: str, key: str) -> None:
     async with pool.acquire() as conn:
         await conn.execute(
             "UPDATE operations_tasks SET params = $2::jsonb, updated_at = NOW() WHERE id = $1",
-            task_id, json.dumps(params, ensure_ascii=False),
+            task_id,
+            json.dumps(params, ensure_ascii=False),
         )
 
 
@@ -305,4 +302,3 @@ async def resume_task(task_id: str) -> dict:
         context_files=[],
         user_id=str(row.get("user_id") or "anonymous"),
     )
-

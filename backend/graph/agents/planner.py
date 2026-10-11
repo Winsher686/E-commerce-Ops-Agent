@@ -23,7 +23,7 @@ from graph.state import AgentState
 log = structlog.get_logger()
 
 PLANNER_SYSTEM = """
-你是跨境电商运营中台的任务规划器。
+你是电商运营中台的任务规划器。
 请把用户的运营目标拆解为“依赖感知的任务 DAG”，每个子任务指派给一个专业 Agent。
 
 可用专业 Agent（assigned_to 只能取以下值）：
@@ -92,13 +92,15 @@ def _fallback_plan(goal: str) -> list[dict]:
 
     plan = []
     for i, area in enumerate(areas):
-        plan.append({
-            "id": f"t{i + 1}",
-            "task": f"处理运营目标[{area}]：{goal}",
-            "assigned_to": area,
-            "depends_on": [] if i == 0 else [f"t{i}"],
-            "priority": i + 1,
-        })
+        plan.append(
+            {
+                "id": f"t{i + 1}",
+                "task": f"处理运营目标[{area}]：{goal}",
+                "assigned_to": area,
+                "depends_on": [] if i == 0 else [f"t{i}"],
+                "priority": i + 1,
+            }
+        )
     return plan
 
 
@@ -115,23 +117,27 @@ def _normalize_plan(plan: list) -> list[dict]:
         if agent not in valid_agents:
             agent = "selection"
         deps = [str(d) for d in (t.get("depends_on") or []) if str(d) in ids and str(d) != tid]
-        out.append({
-            "id": tid,
-            "task": str(t.get("task", "")).replace("\n", " ").strip(),
-            "assigned_to": agent,
-            "depends_on": deps,
-            "priority": int(t.get("priority", i + 1) or (i + 1)),
-        })
+        out.append(
+            {
+                "id": tid,
+                "task": str(t.get("task", "")).replace("\n", " ").strip(),
+                "assigned_to": agent,
+                "depends_on": deps,
+                "priority": int(t.get("priority", i + 1) or (i + 1)),
+            }
+        )
     return out or _fallback_plan("")
 
 
 async def planner_node(state: AgentState) -> dict:
     llm = await get_llm(state["user_id"])
 
-    response = await llm.ainvoke([
-        {"role": "system", "content": PLANNER_SYSTEM},
-        {"role": "user", "content": f"运营目标：{state['goal']}"},
-    ])
+    response = await llm.ainvoke(
+        [
+            {"role": "system", "content": PLANNER_SYSTEM},
+            {"role": "user", "content": f"运营目标：{state['goal']}"},
+        ]
+    )
 
     tokens_used = getattr(response, "usage_metadata", {}).get("total_tokens", 0)
 
@@ -146,9 +152,6 @@ async def planner_node(state: AgentState) -> dict:
         plan = _fallback_plan(state["goal"])
 
     log.info("plan_created", tasks=len(plan))
-    print("\n===== 运营 DAG =====")
-    print(json.dumps(plan, ensure_ascii=False, indent=2))
-    print("====================\n")
 
     return {
         "plan": plan,

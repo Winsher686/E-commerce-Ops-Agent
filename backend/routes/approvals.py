@@ -9,7 +9,7 @@
 import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from bus import events
 from graph.approval import (
@@ -30,7 +30,9 @@ class DecisionRequest(BaseModel):
 
 
 @router.get("")
-async def get_approvals(status: str | None = None, limit: int = 100, user=Depends(get_current_user)) -> dict:
+async def get_approvals(
+    status: str | None = None, limit: int = 100, user=Depends(get_current_user)
+) -> dict:
     rows = await list_approvals(status=status, limit=limit)
     return {"approvals": rows, "count": len(rows)}
 
@@ -61,7 +63,9 @@ async def _decide(approval_id: str, approved: bool, body: DecisionRequest, user:
     task_id = str(row["task_id"]) if row.get("task_id") else None
     if task_id:
         if approved:
-            await events.emit_approval_granted(task_id, approval_id=approval_id, decided_by=decided_by)
+            await events.emit_approval_granted(
+                task_id, approval_id=approval_id, decided_by=decided_by
+            )
             # 写入白名单并恢复执行
             key = operation_key(row.get("operation_type", ""), row.get("payload") or {})
             await orchestrator.add_preapproval(task_id, key)
@@ -72,17 +76,23 @@ async def _decide(approval_id: str, approved: bool, body: DecisionRequest, user:
             )
             await orchestrator.update_task_status(task_id, "completed")
 
-    return {"approval_id": approval_id, "status": status, "decided_by": decided_by,
-            "resumed": bool(approved and task_id)}
+    return {
+        "approval_id": approval_id,
+        "status": status,
+        "decided_by": decided_by,
+        "resumed": bool(approved and task_id),
+    }
 
 
 @router.post("/{approval_id}/approve")
-async def approve(approval_id: str, body: DecisionRequest | None = None,
-                  user=Depends(get_current_user)) -> dict:
+async def approve(
+    approval_id: str, body: DecisionRequest | None = None, user=Depends(get_current_user)
+) -> dict:
     return await _decide(approval_id, True, body or DecisionRequest(), user)
 
 
 @router.post("/{approval_id}/reject")
-async def reject(approval_id: str, body: DecisionRequest | None = None,
-                 user=Depends(get_current_user)) -> dict:
+async def reject(
+    approval_id: str, body: DecisionRequest | None = None, user=Depends(get_current_user)
+) -> dict:
     return await _decide(approval_id, False, body or DecisionRequest(), user)

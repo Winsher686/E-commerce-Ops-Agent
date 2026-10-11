@@ -24,7 +24,9 @@ VALID_TYPES = {"selection", "logistics", "pricing", "cs", "weekly_report", "mixe
 class CreateTaskRequest(BaseModel):
     goal: str = Field(..., description="运营目标（自然语言）")
     task_type: str | None = Field(default=None, description="可选，留空则自动分类")
-    params: dict = Field(default_factory=dict, description="业务参数：market/category/sku/order_ids 等")
+    params: dict = Field(
+        default_factory=dict, description="业务参数：market/category/sku/order_ids 等"
+    )
     context_files: list[str] = Field(default_factory=list)
 
 
@@ -37,9 +39,7 @@ async def create_task(
     if task_type not in VALID_TYPES:
         task_type = "mixed"
 
-    task_id = await orchestrator.create_task_row(
-        user["user_id"], task_type, body.goal, body.params
-    )
+    task_id = await orchestrator.create_task_row(user["user_id"], task_type, body.goal, body.params)
 
     await log_activity("task", "运营任务已创建", f"[{task_type}] {body.goal[:80]}")
 

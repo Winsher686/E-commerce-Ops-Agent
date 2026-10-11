@@ -45,7 +45,11 @@ async def run(inp: PricingRuleInput) -> PricingRuleOutput:
         price = floor_price
         reasons.append("触发保底价，保证目标毛利")
 
-    change_pct = (price - inp.current_price_usd) / inp.current_price_usd * 100 if inp.current_price_usd else 0.0
+    change_pct = (
+        (price - inp.current_price_usd) / inp.current_price_usd * 100
+        if inp.current_price_usd
+        else 0.0
+    )
 
     # 5) 幅度约束
     within = True

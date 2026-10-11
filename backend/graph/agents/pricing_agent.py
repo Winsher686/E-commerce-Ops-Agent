@@ -12,8 +12,8 @@
 #    保底价（成本/费率/目标毛利）
 #  失败降级：竞品数据缺失 → 按规则保底价；改价幅度超限 → 自动封顶并进入审批
 # ──────────────────────────────────────────────────────────────
-from config import get_settings
 from bus import events
+from config import get_settings
 from graph.agents._base import (
     build_result,
     call_tool,
@@ -30,7 +30,7 @@ from graph.state import AgentState
 settings = get_settings()
 
 PRICING_SYSTEM = """
-你是跨境电商的定价策略专家。请基于规则引擎的建议价、库存水位、竞品价格与销量，
+你是电商的定价策略专家。请基于规则引擎的建议价、库存水位、竞品价格与销量，
 输出调价方案报告，包含：
 1) 各 SKU 的现价 → 建议价、变动幅度、依据
 2) 审批情况：哪些自动执行、哪些提交审批
@@ -74,15 +74,25 @@ async def pricing_node(state: AgentState) -> dict:
         items = list(getattr(inv, "items", []) or [])
         qty = items[0].quantity if items else 0
 
-        cp, _ = await call_tool("competitor_price", {
-            "sku": sku, "market": params.get("market", settings.default_market), "task_id": task_id,
-        })
+        cp, _ = await call_tool(
+            "competitor_price",
+            {
+                "sku": sku,
+                "market": params.get("market", settings.default_market),
+                "task_id": task_id,
+            },
+        )
         comp_avg = float(getattr(cp, "avg_price", 0) or 0)
 
-        sales, _ = await call_tool("db_query", {
-            "sql": f"SELECT COALESCE(SUM(units),0) AS units FROM sales_daily WHERE sku = '{sku}'",
-            "table": "sales_daily", "filters": {"sku": sku}, "task_id": task_id,
-        })
+        sales, _ = await call_tool(
+            "db_query",
+            {
+                "sql": f"SELECT COALESCE(SUM(units),0) AS units FROM sales_daily WHERE sku = '{sku}'",
+                "table": "sales_daily",
+                "filters": {"sku": sku},
+                "task_id": task_id,
+            },
+        )
         sales_7d = 0
         rows = list(getattr(sales, "rows", []) or [])
         if rows:
@@ -90,53 +100,76 @@ async def pricing_node(state: AgentState) -> dict:
 
         current_price = comp_avg or round(cost * 1.8, 2)
 
-        rule, _ = await call_tool("pricing_engine", {
-            "sku": sku, "cost_usd": cost, "current_price_usd": current_price,
-            "competitor_avg_usd": comp_avg, "inventory_qty": qty, "sales_7d": sales_7d,
-            "target_margin_pct": float(params.get("target_margin_pct", 30)),
-            "task_id": task_id,
-        })
+        rule, _ = await call_tool(
+            "pricing_engine",
+            {
+                "sku": sku,
+                "cost_usd": cost,
+                "current_price_usd": current_price,
+                "competitor_avg_usd": comp_avg,
+                "inventory_qty": qty,
+                "sales_7d": sales_7d,
+                "target_margin_pct": float(params.get("target_margin_pct", 30)),
+                "task_id": task_id,
+            },
+        )
         suggested = float(getattr(rule, "suggested_price_usd", current_price) or current_price)
         change_pct = float(getattr(rule, "change_pct", 0) or 0)
 
         plan = {
-            "sku": sku, "current_price_usd": current_price,
-            "suggested_price_usd": suggested, "change_pct": change_pct,
+            "sku": sku,
+            "current_price_usd": current_price,
+            "suggested_price_usd": suggested,
+            "change_pct": change_pct,
             "rationale": getattr(rule, "rationale", ""),
         }
         plans.append(plan)
 
         # ── 审批护栏：改价 ────────────────────────────────────
         g = await request_approval_if_needed(
-            agent=AGENT, operation_type="price_change",
-            payload={"sku": sku, "old_price": current_price, "new_price": suggested,
-                     "change_pct": change_pct},
-            state=state, task=task, amount_usd=abs(suggested - current_price),
+            agent=AGENT,
+            operation_type="price_change",
+            payload={
+                "sku": sku,
+                "old_price": current_price,
+                "new_price": suggested,
+                "change_pct": change_pct,
+            },
+            state=state,
+            task=task,
+            amount_usd=abs(suggested - current_price),
             reason=getattr(rule, "rationale", ""),
         )
         approvals.append(g["approval"])
 
         if g["action"] in ("auto", "approved"):
-            executed_ops.append({
-                "agent": AGENT, "op": "price_change", "sku": sku,
-                "old_price": current_price, "new_price": suggested,
-                "change_pct": change_pct, "status": "applied",
-            })
+            executed_ops.append(
+                {
+                    "agent": AGENT,
+                    "op": "price_change",
+                    "sku": sku,
+                    "old_price": current_price,
+                    "new_price": suggested,
+                    "change_pct": change_pct,
+                    "status": "applied",
+                }
+            )
         elif g["action"] == "rejected":
-            executed_ops.append({"agent": AGENT, "op": "price_change", "sku": sku,
-                                 "status": "rejected"})
+            executed_ops.append(
+                {"agent": AGENT, "op": "price_change", "sku": sku, "status": "rejected"}
+            )
         else:
             pending_approval = g["approval"]
             break
 
     user_prompt = f"""
-运营子任务：{task.get('task')}
+运营子任务：{task.get("task")}
 
-{ dependency_context(state, task) }
+{dependency_context(state, task)}
 
 调价方案：{to_json(plans)}
 已执行：{to_json(executed_ops)}
-审批情况：{to_json([{ 'sku': a['payload'].get('sku'), 'level': a['required_level'], 'status': a['status'] } for a in approvals])}
+审批情况：{to_json([{"sku": a["payload"].get("sku"), "level": a["required_level"], "status": a["status"]} for a in approvals])}
 
 请输出调价方案报告。
 """
@@ -146,11 +179,18 @@ async def pricing_node(state: AgentState) -> dict:
     if pending_approval:
         text += f"\n\n⏸ 已提交人工审批：{pending_approval['operation_type']}（{pending_approval['required_level']}），本轮挂起。"
 
-    await emit(events.emit_agent_completed, task_id, agent=AGENT,
-               subtask_id=task.get("id"), output={"plans": plans})
+    await emit(
+        events.emit_agent_completed,
+        task_id,
+        agent=AGENT,
+        subtask_id=task.get("id"),
+        output={"plans": plans},
+    )
 
     return build_result(
-        state, task, text,
+        state,
+        task,
+        text,
         tokens_used=tokens,
         executed_ops=executed_ops,
         approvals=approvals,

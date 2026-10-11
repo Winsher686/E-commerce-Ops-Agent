@@ -30,16 +30,21 @@ async def run(inp: LogisticsTrackInput) -> LogisticsTrackOutput:
         records = load_sample("shipments") or []
         row = None
         for r in records:
-            if (inp.order_id and r.get("order_id") == inp.order_id) or \
-               (inp.tracking_no and r.get("tracking_no") == inp.tracking_no):
+            if (inp.order_id and r.get("order_id") == inp.order_id) or (
+                inp.tracking_no and r.get("tracking_no") == inp.tracking_no
+            ):
                 row = r
                 break
 
         if not row:
             return LogisticsTrackOutput(
-                task_id=inp.task_id, order_id=inp.order_id or "",
-                tracking_no=inp.tracking_no or "", status="unknown",
-                is_exception=True, exception_type="查询不到物流记录", source="mock(empty)",
+                task_id=inp.task_id,
+                order_id=inp.order_id or "",
+                tracking_no=inp.tracking_no or "",
+                status="unknown",
+                is_exception=True,
+                exception_type="查询不到物流记录",
+                source="mock(empty)",
             )
 
         status = row.get("status", "")

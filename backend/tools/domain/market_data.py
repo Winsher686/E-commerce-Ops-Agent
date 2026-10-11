@@ -15,8 +15,11 @@ settings = get_settings()
 def _match(records: list[dict], market: str, category: str) -> list[dict]:
     m = (market or "").upper()
     c = (category or "").lower()
-    hits = [r for r in records
-            if (r.get("market", "").upper() == m) and (c in r.get("category", "").lower())]
+    hits = [
+        r
+        for r in records
+        if (r.get("market", "").upper() == m) and (c in r.get("category", "").lower())
+    ]
     return hits
 
 
@@ -27,8 +30,11 @@ async def run(inp: MarketDataInput) -> MarketDataOutput:
 
         if not hits:
             return MarketDataOutput(
-                task_id=inp.task_id, market=inp.market, category=inp.category,
-                demand_index=0.0, trend="stable",
+                task_id=inp.task_id,
+                market=inp.market,
+                category=inp.category,
+                demand_index=0.0,
+                trend="stable",
                 notes=f"Mock 数据中未找到 {inp.market}/{inp.category}，请检查品类命名。",
                 source="mock(empty)",
             )
@@ -36,20 +42,25 @@ async def run(inp: MarketDataInput) -> MarketDataOutput:
         # 合并同品类多个子类目
         subs: list[SubCategoryStat] = []
         for r in hits:
-            subs.append(SubCategoryStat(
-                name=r.get("subcategory", r.get("category", "")),
-                demand_index=float(r.get("demand_index", 0)),
-                growth_pct=float(r.get("growth_pct", 0)),
-                avg_price_usd=float(r.get("avg_price_usd", 0)),
-            ))
+            subs.append(
+                SubCategoryStat(
+                    name=r.get("subcategory", r.get("category", "")),
+                    demand_index=float(r.get("demand_index", 0)),
+                    growth_pct=float(r.get("growth_pct", 0)),
+                    avg_price_usd=float(r.get("avg_price_usd", 0)),
+                )
+            )
 
         demand = round(sum(s.demand_index for s in subs) / len(subs), 2)
         avg_growth = sum(s.growth_pct for s in subs) / len(subs)
         trend = "rising" if avg_growth > 5 else ("declining" if avg_growth < -5 else "stable")
 
         return MarketDataOutput(
-            task_id=inp.task_id, market=inp.market, category=inp.category,
-            demand_index=demand, trend=trend,
+            task_id=inp.task_id,
+            market=inp.market,
+            category=inp.category,
+            demand_index=demand,
+            trend=trend,
             seasonality=hits[0].get("seasonality", ""),
             top_subcategories=sorted(subs, key=lambda s: -s.demand_index)[:5],
             notes=hits[0].get("notes", ""),
@@ -64,7 +75,9 @@ async def run(inp: MarketDataInput) -> MarketDataOutput:
     )
     subs = [SubCategoryStat(**s) for s in data.get("subcategories", [])]
     return MarketDataOutput(
-        task_id=inp.task_id, market=inp.market, category=inp.category,
+        task_id=inp.task_id,
+        market=inp.market,
+        category=inp.category,
         demand_index=float(data.get("demand_index", 0)),
         trend=data.get("trend", "stable"),
         seasonality=data.get("seasonality", ""),

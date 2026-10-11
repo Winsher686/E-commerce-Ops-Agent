@@ -25,8 +25,11 @@ async def run(inp: TranslateInput) -> TranslateOutput:
         for k, v in table.items():
             text = text.replace(k, v)
         return TranslateOutput(
-            task_id=inp.task_id, text=text, source_lang=inp.source_lang,
-            target_lang=inp.target_lang, engine="mock",
+            task_id=inp.task_id,
+            text=text,
+            source_lang=inp.source_lang,
+            target_lang=inp.target_lang,
+            engine="mock",
         )
 
     # ── 真实 API 适配器 ───────────────────────────────────────
@@ -37,13 +40,18 @@ async def run(inp: TranslateInput) -> TranslateOutput:
             headers={"Authorization": f"Bearer {settings.translation_api_key}"},
         )
         return TranslateOutput(
-            task_id=inp.task_id, text=data.get("text", inp.text),
+            task_id=inp.task_id,
+            text=data.get("text", inp.text),
             source_lang=data.get("source_lang", inp.source_lang),
-            target_lang=inp.target_lang, engine="api",
+            target_lang=inp.target_lang,
+            engine="api",
         )
     except Exception:
         # 降级：返回原文
         return TranslateOutput(
-            task_id=inp.task_id, text=inp.text, source_lang=inp.source_lang,
-            target_lang=inp.target_lang, engine="failed",
+            task_id=inp.task_id,
+            text=inp.text,
+            source_lang=inp.source_lang,
+            target_lang=inp.target_lang,
+            engine="failed",
         )

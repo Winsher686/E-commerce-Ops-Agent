@@ -18,15 +18,24 @@ _FORBIDDEN = re.compile(
 
 # 表名白名单（mock 模式下用于映射到示例数据）
 _ALLOWED_TABLES = {
-    "order_exceptions", "shipments", "pricing_history", "support_tickets",
-    "product_candidates", "inventory", "competitor_prices", "sales_daily",
-    "operations_tasks", "agent_executions", "approvals",
+    "order_exceptions",
+    "shipments",
+    "pricing_history",
+    "support_tickets",
+    "product_candidates",
+    "inventory",
+    "competitor_prices",
+    "sales_daily",
+    "operations_tasks",
+    "agent_executions",
+    "approvals",
 }
 
 
 async def run(inp: DBQueryInput) -> DBQueryOutput:
     # ── mock 模式：按表名读取示例数据 ─────────────────────────
     from config import get_settings
+
     if get_settings().mock_enabled:
         if inp.table:
             rows = load_sample(inp.table) or []

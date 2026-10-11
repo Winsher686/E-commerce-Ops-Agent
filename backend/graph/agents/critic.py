@@ -15,7 +15,7 @@ from graph.llm import get_llm
 from graph.state import AgentState
 
 CRITIC_SYSTEM = """
-你是跨境电商运营结果的质检员。判断本次运营任务是否可判为完成。
+你是电商运营结果的质检员。判断本次运营任务是否可判为完成。
 通过：核心子任务有可用产出，或仅存在“待人工审批/局部降级”而主体结果有效。
 拒绝：全部子任务硬失败，或结果与运营目标无关。
 只回复 JSON：{"approved": true|false, "feedback": "..."}
@@ -23,12 +23,25 @@ CRITIC_SYSTEM = """
 
 # 硬失败标记（工具/执行层错误）
 FAILURE_MARKERS = [
-    "syntax error", "execution environment error", "docker execution failed",
-    "traceback", "segmentation fault", "core dumped", "permission denied",
+    "syntax error",
+    "execution environment error",
+    "docker execution failed",
+    "traceback",
+    "segmentation fault",
+    "core dumped",
+    "permission denied",
 ]
 # 局部降级标记（不算硬失败）
 PARTIAL_MARKERS = [
-    "获取失败", "缺失", "降级", "重试", "failed", "超时", "不可用", "转人工", "待重发",
+    "获取失败",
+    "缺失",
+    "降级",
+    "重试",
+    "failed",
+    "超时",
+    "不可用",
+    "转人工",
+    "待重发",
 ]
 
 
@@ -52,16 +65,19 @@ async def critic_node(state: AgentState) -> dict:
             success += 1
 
     total = len(results)
-    print("运营校验计数：", success, partial, failure, total)
 
     # 无硬失败 → 通过
     if failure == 0 and (success + partial) >= 1:
         return {
             "approved": True,
-            "messages": [AIMessage(
-                content=(f"校验通过。完成 {total} 项运营子任务"
-                         f"（{success} 正常，{partial} 含降级/待审批）。")
-            )],
+            "messages": [
+                AIMessage(
+                    content=(
+                        f"校验通过。完成 {total} 项运营子任务"
+                        f"（{success} 正常，{partial} 含降级/待审批）。"
+                    )
+                )
+            ],
         }
 
     # 全部硬失败 → 拒绝
@@ -74,10 +90,15 @@ async def critic_node(state: AgentState) -> dict:
     # 部分失败 → 交由 LLM 判定
     summary = "\n".join(f"[{k}]: {str(v)[:300]}" for k, v in results.items())
     llm = await get_llm(state["user_id"])
-    resp = await llm.ainvoke([
-        {"role": "system", "content": CRITIC_SYSTEM},
-        {"role": "user", "content": f"目标：{state['goal']}\n\n结果：\n{summary}\n\n是否通过？只回 JSON。"},
-    ])
+    resp = await llm.ainvoke(
+        [
+            {"role": "system", "content": CRITIC_SYSTEM},
+            {
+                "role": "user",
+                "content": f"目标：{state['goal']}\n\n结果：\n{summary}\n\n是否通过？只回 JSON。",
+            },
+        ]
+    )
     tokens = getattr(resp, "usage_metadata", {}).get("total_tokens", 0)
 
     try:
@@ -86,8 +107,14 @@ async def critic_node(state: AgentState) -> dict:
         verdict = {"approved": failure < max(1, total / 2), "feedback": "部分失败"}
 
     if verdict.get("approved"):
-        return {"approved": True, "tokens_used": (state.get("tokens_used") or 0) + tokens,
-                "messages": [AIMessage(content=f"校验通过：{verdict.get('feedback', '')}")]}
+        return {
+            "approved": True,
+            "tokens_used": (state.get("tokens_used") or 0) + tokens,
+            "messages": [AIMessage(content=f"校验通过：{verdict.get('feedback', '')}")],
+        }
 
-    return {"approved": False, "tokens_used": (state.get("tokens_used") or 0) + tokens,
-            "messages": [AIMessage(content=f"校验拒绝：{verdict.get('feedback', '')}")]}
+    return {
+        "approved": False,
+        "tokens_used": (state.get("tokens_used") or 0) + tokens,
+        "messages": [AIMessage(content=f"校验拒绝：{verdict.get('feedback', '')}")],
+    }

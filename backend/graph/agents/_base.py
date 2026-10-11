@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -15,7 +15,6 @@ from graph.approval import gate
 from graph.llm import get_llm
 from graph.state import AgentState
 from tools.domain import registry as tools_registry
-from bus import events
 
 log = structlog.get_logger()
 
@@ -28,11 +27,12 @@ async def emit(fn, *args, **kwargs) -> None:
         pass
 
 
-def pick_pending(state: AgentState, agent: str) -> Optional[dict]:
+def pick_pending(state: AgentState, agent: str) -> dict | None:
     """挑选该 Agent 名下、依赖已满足、尚未完成的子任务（按优先级）。"""
     results = state.get("results", {})
     pending = [
-        t for t in sorted(state.get("plan", []), key=lambda x: x.get("priority", 99))
+        t
+        for t in sorted(state.get("plan", []), key=lambda x: x.get("priority", 99))
         if t.get("assigned_to") == agent
         and t.get("id") not in results
         and all(d in results for d in t.get("depends_on", []))
@@ -48,7 +48,7 @@ def dependency_context(state: AgentState, task: dict, limit: int = 2000) -> str:
     return "\n\n".join(parts) or "（无前置依赖）"
 
 
-async def call_tool(name: str, payload: dict[str, Any]) -> tuple[Optional[Any], Optional[str]]:
+async def call_tool(name: str, payload: dict[str, Any]) -> tuple[Any | None, str | None]:
     """调用领域工具并返回 (输出模型, 错误)。"""
     try:
         return await tools_registry.call(name, payload)
@@ -60,10 +60,12 @@ async def call_tool(name: str, payload: dict[str, Any]) -> tuple[Optional[Any], 
 async def synthesize(system: str, user: str, user_id: str) -> tuple[str, int]:
     """用 LLM 汇总工具结果，返回 (文本, tokens)。"""
     llm = await get_llm(user_id)
-    resp = await llm.ainvoke([
-        SystemMessage(content=system),
-        HumanMessage(content=user),
-    ])
+    resp = await llm.ainvoke(
+        [
+            SystemMessage(content=system),
+            HumanMessage(content=user),
+        ]
+    )
     tokens = getattr(resp, "usage_metadata", {}).get("total_tokens", 0)
     return (resp.content if hasattr(resp, "content") else str(resp)).strip(), tokens
 
@@ -78,9 +80,9 @@ def build_result(
     text: str,
     *,
     tokens_used: int = 0,
-    executed_ops: Optional[list] = None,
-    approvals: Optional[list] = None,
-    pending_approval: Optional[dict] = None,
+    executed_ops: list | None = None,
+    approvals: list | None = None,
+    pending_approval: dict | None = None,
 ) -> dict:
     """把领域 Agent 的执行结果写回共享状态。"""
     results = state.get("results", {})

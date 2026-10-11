@@ -12,7 +12,6 @@ os.environ.setdefault("GROQ_API_KEY", "test-groq-key")
 os.environ.setdefault("JWT_SECRET", "x" * 48)
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
-os.environ.setdefault("SERPAPI_KEY", "test-serpapi-key")
 os.environ.setdefault("MOCK_ENABLED", "true")
 os.environ.setdefault("HITL_ENABLED", "true")
 

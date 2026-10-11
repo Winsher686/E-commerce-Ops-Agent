@@ -1,4 +1,4 @@
-# CrossBorder Ops Agent · 跨境电商运营中台
+# E-commerce Ops Agent · 电商运营中台
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green)
@@ -7,9 +7,12 @@
 ![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![WebSocket](https://img.shields.io/badge/WebSocket-Real--Time-green)
+![CI](https://github.com/Winsher686/Ecommerce-Ops-Agent/actions/workflows/ci.yml/badge.svg)
 
-> 你给出一句运营目标，**运营主管 Agent** 会把它拆成依赖感知的 DAG，路由给专业 Agent 协作，
-> 高风险操作经**人工审批护栏**把关，全过程通过 WebSocket 实时回传。
+> 面向**电商运营**的多 Agent 协作中台：你给出一句运营目标，**运营主管 Agent** 会把它拆成依赖感知的 DAG，
+> 路由给专业 Agent 协作，高风险操作经**人工审批护栏**把关，全过程通过 WebSocket 实时回传。
+> 覆盖**选品、订单与物流、客服、定价、数据周报**五大运营场景；工具集同时支持多币种（`fx_rate`）
+> 与多语言（`translation`），国内电商与出海/跨境业务均可直接套用。
 
 技术栈：**Python · FastAPI · LangGraph · PostgreSQL · Redis Pub/Sub · Docker · WebSocket**。
 
@@ -24,16 +27,21 @@
 | Agent 拓扑重构 | 以**运营主管 Supervisor** 为唯一入口，替换通用节点；新增 5 个领域 Agent（选品 / 订单物流 / 多语言客服 / 定价 / 数据周报）+ 公共基座 `_base.py`；重写 `planner.py` 为**依赖感知 DAG 规划器**、`critic.py` 为运营结果校验 |
 | 编排逻辑 | `supervisor.py` 实现目标分解 → 依赖调度 → 条件路由 → 结果汇总 → 异常处理（重试/降级/转人工）；`build_graph.py` 重构节点与条件边并挂载 checkpointer |
 | 审批护栏（HITL） | 新建 `graph/approval.py`：审批矩阵（阈值分档）、`interrupt()` 护栏与**不支持 interrupt 时的降级方案**（落库 pending + 白名单 + resume 重放）、审批记录落库 |
-| 领域工具集 | 新建 `tools/domain/`：13 个工具 + Pydantic IO Schema + 注册表（含审批标记），默认 Mock 数据离线可跑，预留真实 API 适配器与开关 |
-| 数据与事件 | 新建集中建表脚本 `services/schema.sql`（含 9 张运营领域表）、`bus/events.py` 事件规范（`task.* / agent.* / approval.*`）、`services/orchestrator.py` 任务编排器 |
+| 领域工具集 | 新建 `tools/domain/`：15 个工具 + Pydantic IO Schema + 注册表（含审批标记），默认 Mock 数据离线可跑，预留真实 API 适配器与开关 |
+| 数据与事件 | 新建集中建表脚本 `services/schema.sql`（含 12 张运营领域表）、`bus/events.py` 事件规范（`task.* / agent.* / approval.*`）、`services/orchestrator.py` 任务编排器 |
 | API | 新建 `/tasks`、`/approvals`、`/agents` 路由与审批恢复接口，改造 WebSocket 支持任务/审批事件流 |
-| 示例与测试 | 编写 `sample_data/*.json` + `seed_demo.py` 演示数据；新增 pytest 测试（DAG 编排 / 审批矩阵 / 工具 IO / 任务路由，共 25 例） |
-| 文档 | 重写 README，新增架构说明与审批流程文档，并绘制全套流程图（`docs/DIAGRAMS.pdf`） |
+| 示例与测试 | 编写 `sample_data/*.json` + `seed_demo.py` 演示数据；pytest 测试 32 例（DAG 编排 / 审批矩阵与边界 / 工具 IO / 任务路由 / 端到端离线流程） |
+| 文档 | 重写 README，新增架构说明、审批流程、需求与流程设计文档，并绘制全套流程图（`docs/DIAGRAMS.pdf`） |
+| 工程化 | 引入 **ruff**（lint + format，配置见 `pyproject.toml`）与 **GitHub Actions CI**；依赖从 183 项精简至 20 项直接依赖；清理与业务无关的遗留模块 |
 | 缺陷修复 | 修复原项目的连接池 `ssl="require"` 硬编码、Windows 绝对路径硬编码、强制 `rediss://`、缺失 `.env.example`、Supabase 客户端导入即崩溃等问题 |
 
-> 说明：原项目自带的通用 Agent（`researcher` / `coder` / `github_agent`）与通用工具（代码执行、OCR、RAG 等）
-> 与本项目业务无关，**未接入运营编排**，作为可复用能力保留；原项目的前端控制台未纳入本次改造，
-> 已移除（本仓库聚焦后端服务与文档，接口与 WebSocket 事件均已预留）。
+> 范围说明：本项目**只保留与电商运营相关的模块**。原项目自带的通用 Agent（`researcher` / `coder` /
+> `github_agent`）与通用工具（代码执行、OCR、RAG、GitHub 等）及前端控制台**已全部移除**，
+> 仓库聚焦「多 Agent 运营编排 + 审批护栏 + 领域工具」这一条主线。
+>
+> 角色说明：本项目按**「一名一年经验工程师独立负责一个业务模块」**的粒度交付——基础设施
+> （PostgreSQL / Redis / LangGraph / CI）沿用既有方案，本人聚焦**业务侧的落地与工程化**；
+> 不涉及 K8s、微服务拆分、自研框架等超出一年职责范围的内容。
 
 ---
 
@@ -44,7 +52,7 @@
 | 多 Agent 编排 | 运营主管按 DAG 调度，依赖满足才执行后续任务 |
 | 领域 Agent | 选品分析 / 订单与物流 / 多语言客服 / 定价 / 数据周报 |
 | 人工审批护栏（HITL） | 改价、退款、批量补发、改库存等高风险操作按金额/幅度分档审批 |
-| 可解释工具集 | 13 个领域工具，统一 Pydantic IO Schema，Mock/真实 API 可切换 |
+| 可解释工具集 | 15 个领域工具，统一 Pydantic IO Schema，Mock/真实 API 可切换 |
 | 状态持久化 | 任务、DAG 进度、Agent 执行记录、审批记录全部落库，支持恢复 |
 | 实时事件 | Redis Pub/Sub → WebSocket 推送 `task.* / agent.* / approval.*` 事件 |
 
@@ -70,14 +78,15 @@ selection   order_logistics customer_service pricing  weekly_report
       ┌─────────┴──────────┐
       ▼                    ▼
  审批护栏(HITL)      Redis Pub/Sub 事件
- interrupt/矩阵      → WebSocket 前端
+ interrupt/矩阵      → WebSocket 实时推送
       │                    │
       └────────┬───────────┘
                ▼
       PostgreSQL 持久化（任务/DAG/执行/审批/业务表）
 ```
 
-详见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 与 [`docs/APPROVAL_FLOW.md`](docs/APPROVAL_FLOW.md)。
+详见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)、[`docs/APPROVAL_FLOW.md`](docs/APPROVAL_FLOW.md)
+与 [`docs/REQUIREMENTS_AND_FLOWS.md`](docs/REQUIREMENTS_AND_FLOWS.md)（业务需求 → 端到端流程设计）。
 
 ---
 
@@ -110,7 +119,7 @@ selection   order_logistics customer_service pricing  weekly_report
 
 ---
 
-## 五、工具集（13 个）
+## 五、工具集（15 个）
 
 | 工具 | 说明 | 需审批 |
 |------|------|:------:|
@@ -146,16 +155,15 @@ selection   order_logistics customer_service pricing  weekly_report
 | POST | `/approvals/{id}/approve` | 审批通过（记录 + 事件 + 恢复） |
 | POST | `/approvals/{id}/reject` | 审批拒绝 |
 | GET | `/agents` | 列出所有 Agent 与工具能力矩阵 |
-| POST | `/run` | 兼容旧入口，等价于提交运营任务 |
-| WS | `/ws/{run_id}` | 实时推送任务进度与审批请求 |
+| WS | `/ws/tasks/{task_id}` | 订阅 `task:{task_id}`，实时推送任务进度与审批请求 |
 
-保留原有 `auth / apikeys / admin / plan / tools / uploads / updates` 等路由。
+支撑路由：`/auth`（注册 / 登录 / 会话）、`/apikeys`（用户自带 LLM Key）、`/preferences`（模型选择）。
 
 ### Redis 事件
 
 `task.created` · `task.decomposed` · `task.completed` · `task.failed` · `agent.started` · `agent.completed` · `agent.failed` · `approval.requested` · `approval.granted` · `approval.rejected` · `tool.called`
 
-频道：`task:{task_id}`（运营任务）、`run:{run_id}`（兼容旧入口）。
+频道：`task:{task_id}`（运营任务事件流）。
 
 ---
 
@@ -164,7 +172,7 @@ selection   order_logistics customer_service pricing  weekly_report
 集中建表脚本：`backend/services/schema.sql`（启动时由 `services/db.py::init_db()` 幂等执行）。
 
 - 账号/会话/偏好/API Key：`users` `sessions` `user_preferences` `user_api_keys`
-- 运行与日志：`agent_runs` `activity_logs` `cached_runs` `assistant_memory` `uploaded_files`
+- 审计日志：`activity_logs`
 - 运营领域：`operations_tasks` `agent_executions` `approvals` `order_exceptions`
   `shipments` `pricing_history` `support_tickets` `product_candidates` `notifications`
 - 演示数据表：`inventory` `competitor_prices` `sales_daily`
@@ -180,7 +188,7 @@ cp .env.example .env        # 填入 GROQ_API_KEY / JWT_SECRET 等
 # 2. 启动 Postgres + Redis
 docker compose up -d
 
-# 3. 后端
+# 3. 后端（Python 3.12）
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -235,15 +243,26 @@ curl -X POST localhost:8000/approvals/<id>/approve -b cookie.txt -d '{"decided_b
 
 ---
 
-## 十、测试
+## 十、测试与代码质量
 
 ```bash
 cd backend
-pytest -q
+pip install -r requirements-dev.txt   # 含 pytest / pytest-cov / ruff
+pytest -q                             # 运行测试（32 例）
+ruff check . && ruff format --check . # 代码检查与格式化校验
 ```
 
-覆盖：Supervisor DAG 编排（`test_supervisor_dag.py`）、审批护栏与矩阵（`test_approval_guardrail.py`）、
-领域工具 IO 与 mock 路径（`test_domain_tools.py`）、任务/Agent 路由（`test_api_tasks.py`）。
+覆盖范围：
+
+| 文件 | 内容 |
+|------|------|
+| `test_supervisor_dag.py` | Supervisor 编排、DAG 依赖调度、死锁检测 |
+| `test_approval_guardrail.py` | 审批矩阵与**边界值**、gate 分支（auto / approved / pending） |
+| `test_domain_tools.py` | 领域工具 IO Schema 与 mock 路径 |
+| `test_api_tasks.py` | 任务/Agent 路由 |
+| `test_e2e_flow.py` | **端到端离线集成**：物流异常处理完整 DAG（mock 数据 + 假 LLM） |
+
+CI：`.github/workflows/ci.yml` — 每次 push / PR 自动跑 `ruff` + `pytest`。
 
 ---
 
@@ -252,14 +271,17 @@ pytest -q
 ```
 backend/
 ├── config.py                 ← 全局配置（含审批阈值 / MOCK / HITL 开关）
-├── main.py                   ← FastAPI 入口 + WebSocket
+├── main.py                   ← FastAPI 入口 + WebSocket + 健康/就绪探针
+├── pyproject.toml            ← ruff 配置
+├── requirements.txt          ← 运行依赖（20 项）
+├── requirements-dev.txt      ← 开发依赖（pytest / ruff）
 ├── seed_demo.py              ← 演示数据灌库
 ├── graph/
 │   ├── state.py              ← 共享状态（DAG/审批/执行轨迹）
 │   ├── supervisor.py         ← 运营主管 Agent
 │   ├── approval.py           ← 人工审批护栏（矩阵 + interrupt + 落库）
 │   ├── build_graph.py        ← LangGraph 编排图（+checkpointer）
-│   ├── router.py             ← 领域路由 / slash 命令
+│   ├── router.py             ← 领域任务分类
 │   └── agents/
 │       ├── planner.py            ← 运营 DAG 规划器
 │       ├── selection_agent.py    ← 选品分析
@@ -268,7 +290,7 @@ backend/
 │       ├── pricing_agent.py      ← 定价
 │       ├── weekly_report_agent.py← 数据周报
 │       └── critic.py             ← 结果校验
-├── tools/domain/             ← 13 个领域工具 + schemas + registry
+├── tools/domain/             ← 15 个领域工具 + schemas + registry
 ├── services/
 │   ├── db.py / schema.sql    ← 连接池 + 集中建表
 │   └── orchestrator.py       ← 任务编排器（驱动图 + 落库 + 事件）
@@ -277,9 +299,12 @@ backend/
 ├── routes/agents.py          ← /agents
 ├── bus/events.py             ← Redis 事件规范
 ├── sample_data/              ← 演示数据（订单/库存/工单/竞品价/选品）
-└── tests/                    ← pytest 用例
+└── tests/                    ← pytest 用例（32 例，含端到端）
+
+.github/workflows/ci.yml      ← CI（ruff + pytest）
 
 docs/
+├── REQUIREMENTS_AND_FLOWS.md ← 业务需求 → 端到端流程设计
 ├── ARCHITECTURE.md           ← 架构说明（分层架构 / 协作时序）
 ├── APPROVAL_FLOW.md          ← 审批流程与审批矩阵
 ├── DIAGRAMS.pdf              ← 全部流程图（矢量 PDF）
@@ -290,7 +315,7 @@ docs/
 
 ## 十二、说明
 
-- **纯 Python 后端**，未引入 Java/Go/C++；Docker 执行器保留但不承载业务逻辑。
-- Agent 侧：`planner` 为运营 DAG 规划器，`critic` 为运营结果校验，5 个领域 Agent 各自有明确职责边界；
-  通用能力（`researcher` / `coder` / `github_agent`）未接入运营编排，保留文件可复用。
+- **纯 Python 技术栈**：不引入 Java / Go / C++，也不依赖任何外部代码执行沙箱。
+- Agent 侧：`planner` 为运营 DAG 规划器，`critic` 为运营结果校验，5 个领域 Agent 各自有明确职责边界与降级策略。
+- 工程化：`ruff` 统一 lint/format，GitHub Actions 每次提交自动跑检查与测试；运行依赖精简至 20 项。
 - 代码与文档中的品牌、订单、用户、竞品数据均为虚构，不含任何真实个人信息或真实密钥。

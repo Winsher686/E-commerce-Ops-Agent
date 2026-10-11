@@ -8,32 +8,82 @@ import asyncio
 import json
 import os
 
-from services.db import init_db, get_db
+from services.db import get_db, init_db
 
 SAMPLE_DIR = os.path.join(os.path.dirname(__file__), "sample_data")
 
 # 表名 → (JSON 字段, 目标表列)
 _TABLES = {
-    "sales_daily": (["sku", "market", "sale_date", "units", "revenue_usd"],
-                    ["sku", "market", "sale_date", "units", "revenue_usd"]),
-    "order_exceptions": (["order_id", "platform", "exception_type", "severity", "status"],
-                         ["order_id", "platform", "exception_type", "severity", "status"]),
-    "support_tickets": (["ticket_no", "platform", "language", "customer", "message",
-                         "category", "sentiment", "draft_reply", "status"],
-                        ["ticket_no", "platform", "language", "customer", "message",
-                         "category", "sentiment", "draft_reply", "status"]),
-    "pricing_history": (["sku", "old_price", "new_price", "currency", "change_pct", "reason"],
-                        ["sku", "old_price", "new_price", "currency", "change_pct", "reason"]),
-    "product_candidates": (["name", "category", "market", "cost_usd", "price_usd",
-                            "est_margin_pct", "demand_score", "competition_score",
-                            "score", "recommendation"],
-                           ["name", "category", "market", "cost_usd", "price_usd",
-                            "est_margin_pct", "demand_score", "competition_score",
-                            "score", "recommendation"]),
-    "inventory": (["sku", "warehouse", "quantity", "safety_stock"],
-                  ["sku", "warehouse", "quantity", "safety_stock"]),
-    "competitor_prices": (["sku", "platform", "market", "price"],
-                          ["sku", "platform", "market", "price"]),
+    "sales_daily": (
+        ["sku", "market", "sale_date", "units", "revenue_usd"],
+        ["sku", "market", "sale_date", "units", "revenue_usd"],
+    ),
+    "order_exceptions": (
+        ["order_id", "platform", "exception_type", "severity", "status"],
+        ["order_id", "platform", "exception_type", "severity", "status"],
+    ),
+    "support_tickets": (
+        [
+            "ticket_no",
+            "platform",
+            "language",
+            "customer",
+            "message",
+            "category",
+            "sentiment",
+            "draft_reply",
+            "status",
+        ],
+        [
+            "ticket_no",
+            "platform",
+            "language",
+            "customer",
+            "message",
+            "category",
+            "sentiment",
+            "draft_reply",
+            "status",
+        ],
+    ),
+    "pricing_history": (
+        ["sku", "old_price", "new_price", "currency", "change_pct", "reason"],
+        ["sku", "old_price", "new_price", "currency", "change_pct", "reason"],
+    ),
+    "product_candidates": (
+        [
+            "name",
+            "category",
+            "market",
+            "cost_usd",
+            "price_usd",
+            "est_margin_pct",
+            "demand_score",
+            "competition_score",
+            "score",
+            "recommendation",
+        ],
+        [
+            "name",
+            "category",
+            "market",
+            "cost_usd",
+            "price_usd",
+            "est_margin_pct",
+            "demand_score",
+            "competition_score",
+            "score",
+            "recommendation",
+        ],
+    ),
+    "inventory": (
+        ["sku", "warehouse", "quantity", "safety_stock"],
+        ["sku", "warehouse", "quantity", "safety_stock"],
+    ),
+    "competitor_prices": (
+        ["sku", "platform", "market", "price"],
+        ["sku", "platform", "market", "price"],
+    ),
 }
 
 
@@ -67,7 +117,7 @@ async def main():
             path = os.path.join(SAMPLE_DIR, f"{table}.json")
             if not os.path.exists(path):
                 continue
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 rows = json.load(f)
             n = await _seed(conn, table, rows, fields, cols)
             total += n

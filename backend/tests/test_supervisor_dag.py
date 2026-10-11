@@ -1,9 +1,10 @@
 # backend/tests/test_supervisor_dag.py
 """Supervisor 编排逻辑与 DAG 规划测试。"""
+
 import pytest
 
 from graph.agents.planner import _fallback_plan, _normalize_plan
-from graph.supervisor import supervisor_node
+from graph.supervisor import STUCK_LIMIT, supervisor_node
 
 
 def test_fallback_plan_detects_selection():
@@ -23,8 +24,8 @@ def test_normalize_plan_fixes_invalid_agent_and_deps():
         {"id": "t2", "task": "定价", "assigned_to": "pricing", "depends_on": []},
     ]
     plan = _normalize_plan(raw)
-    assert plan[0]["assigned_to"] == "selection"      # 非法 agent 回落
-    assert "t2" in plan[0]["depends_on"]              # 合法依赖保留
+    assert plan[0]["assigned_to"] == "selection"  # 非法 agent 回落
+    assert "t2" in plan[0]["depends_on"]  # 合法依赖保留
     assert plan[0]["task"] == "调研"
 
 
@@ -53,8 +54,20 @@ async def test_supervisor_goes_to_planner_when_no_plan():
 @pytest.mark.asyncio
 async def test_supervisor_respects_dependencies():
     plan = [
-        {"id": "t1", "task": "查到货", "assigned_to": "order_logistics", "depends_on": [], "priority": 1},
-        {"id": "t2", "task": "退款", "assigned_to": "order_logistics", "depends_on": ["t1"], "priority": 2},
+        {
+            "id": "t1",
+            "task": "查到货",
+            "assigned_to": "order_logistics",
+            "depends_on": [],
+            "priority": 1,
+        },
+        {
+            "id": "t2",
+            "task": "退款",
+            "assigned_to": "order_logistics",
+            "depends_on": ["t1"],
+            "priority": 2,
+        },
     ]
     # t2 依赖 t1，t1 未完成 → 只能先调度 t1
     out = await supervisor_node(_base_state(plan=plan, results={}))
@@ -63,16 +76,54 @@ async def test_supervisor_respects_dependencies():
 
 @pytest.mark.asyncio
 async def test_supervisor_routes_to_critic_when_all_done():
-    plan = [{"id": "t1", "task": "选品", "assigned_to": "selection", "depends_on": [], "priority": 1}]
+    plan = [
+        {"id": "t1", "task": "选品", "assigned_to": "selection", "depends_on": [], "priority": 1}
+    ]
     out = await supervisor_node(_base_state(plan=plan, results={"t1": "结果"}))
     assert out["next"] == "critic"
 
 
 @pytest.mark.asyncio
 async def test_supervisor_waits_on_pending_approval():
-    out = await supervisor_node(_base_state(
-        plan=[{"id": "t1", "task": "退款", "assigned_to": "order_logistics",
-               "depends_on": [], "priority": 1}],
-        pending_approval={"id": "a1", "operation_type": "refund"},
-    ))
+    out = await supervisor_node(
+        _base_state(
+            plan=[
+                {
+                    "id": "t1",
+                    "task": "退款",
+                    "assigned_to": "order_logistics",
+                    "depends_on": [],
+                    "priority": 1,
+                }
+            ],
+            pending_approval={"id": "a1", "operation_type": "refund"},
+        )
+    )
     assert out["next"] == "END"
+
+
+@pytest.mark.asyncio
+async def test_supervisor_resets_stuck_counter_when_progress():
+    plan = [
+        {"id": "t1", "task": "选品", "assigned_to": "selection", "depends_on": [], "priority": 1}
+    ]
+    out = await supervisor_node(_base_state(plan=plan, results={}, stuck_rounds=2))
+    assert out["next"] == "selection"
+    assert out["stuck_rounds"] == 0
+
+
+@pytest.mark.asyncio
+async def test_supervisor_detects_dependency_deadlock():
+    # t2 依赖一个永远不会完成的 t1（不在 plan 中）→ 无可调度任务
+    plan = [
+        {
+            "id": "t2",
+            "task": "退款",
+            "assigned_to": "order_logistics",
+            "depends_on": ["t1"],
+            "priority": 1,
+        }
+    ]
+    out = await supervisor_node(_base_state(plan=plan, results={}, stuck_rounds=STUCK_LIMIT - 1))
+    assert out["next"] == "END"
+    assert out["stuck_rounds"] == STUCK_LIMIT

@@ -34,8 +34,10 @@ async def run(inp: InventoryQueryInput) -> InventoryQueryOutput:
         for it in items:
             it.available = it.quantity > 0
         return InventoryQueryOutput(
-            task_id=inp.task_id, items=items,
-            total_quantity=sum(i.quantity for i in items), source="mock",
+            task_id=inp.task_id,
+            items=items,
+            total_quantity=sum(i.quantity for i in items),
+            source="mock",
         )
 
     # ── 真实 API 适配器 ───────────────────────────────────────
@@ -46,8 +48,10 @@ async def run(inp: InventoryQueryInput) -> InventoryQueryOutput:
     )
     items = [InventoryItem(**i) for i in data.get("items", [])]
     return InventoryQueryOutput(
-        task_id=inp.task_id, items=items,
-        total_quantity=sum(i.quantity for i in items), source="api",
+        task_id=inp.task_id,
+        items=items,
+        total_quantity=sum(i.quantity for i in items),
+        source="api",
     )
 
 
@@ -64,8 +68,11 @@ async def update(inp: InventoryUpdateInput) -> InventoryUpdateOutput:
                 base_qty = int(r.get("quantity", 0))
                 break
         return InventoryUpdateOutput(
-            task_id=inp.task_id, success=True, sku=inp.sku,
-            new_quantity=inp.quantity, message=f"mock 更新成功（原 {base_qty} → {inp.quantity}）",
+            task_id=inp.task_id,
+            success=True,
+            sku=inp.sku,
+            new_quantity=inp.quantity,
+            message=f"mock 更新成功（原 {base_qty} → {inp.quantity}）",
         )
 
     data = await http_get(
@@ -74,7 +81,9 @@ async def update(inp: InventoryUpdateInput) -> InventoryUpdateOutput:
         headers={"Authorization": f"Bearer {settings.inventory_api_key}"},
     )
     return InventoryUpdateOutput(
-        task_id=inp.task_id, success=bool(data.get("success", True)),
-        sku=inp.sku, new_quantity=int(data.get("new_quantity", inp.quantity)),
+        task_id=inp.task_id,
+        success=bool(data.get("success", True)),
+        sku=inp.sku,
+        new_quantity=int(data.get("new_quantity", inp.quantity)),
         message=data.get("message", ""),
     )

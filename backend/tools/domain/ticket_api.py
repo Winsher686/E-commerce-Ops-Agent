@@ -59,7 +59,9 @@ async def list_tickets(inp: TicketListInput) -> TicketListOutput:
             SupportTicket(**{k: r.get(k) for k in SupportTicket.model_fields})
             for r in rows[: inp.limit]
         ]
-        return TicketListOutput(task_id=inp.task_id, tickets=tickets, count=len(tickets), source="mock")
+        return TicketListOutput(
+            task_id=inp.task_id, tickets=tickets, count=len(tickets), source="mock"
+        )
 
     data = await http_get(
         f"{settings.ticket_api_base}/v1/tickets",
@@ -79,6 +81,10 @@ async def classify(inp: TicketClassifyInput) -> TicketClassifyOutput:
         "投诉": "建议：安抚并升级至主管，附补偿方案",
     }.get(category, "建议：人工复核后回复")
     return TicketClassifyOutput(
-        task_id=inp.task_id, ticket_no=inp.ticket_no, category=category,
-        sentiment=sentiment, confidence=conf, recommended_action=action,
+        task_id=inp.task_id,
+        ticket_no=inp.ticket_no,
+        category=category,
+        sentiment=sentiment,
+        confidence=conf,
+        recommended_action=action,
     )

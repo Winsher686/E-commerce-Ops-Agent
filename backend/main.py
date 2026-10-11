@@ -1,61 +1,42 @@
 # backend/main.py
 # ──────────────────────────────────────────────────────────────
-#  跨境电商运营中台 —— FastAPI 应用入口
-#  - 注册全部路由（含新的 /tasks、/approvals、/agents）
-#  - /run 保留为兼容入口：提交运营目标 → 创建运营任务 → 后台编排
-#  - /ws/{run_id} 实时推送任务进度与审批请求
+#  电商运营中台 —— FastAPI 应用入口
+#  - 业务路由：/tasks、/approvals、/agents（外加账号/偏好等支撑路由）
+#  - /ws/tasks/{task_id} 实时推送任务进度与审批请求
+#  - /health 存活探针、/ready 就绪探针
 # ──────────────────────────────────────────────────────────────
 import asyncio
 import sys
-import uuid
 
 import jwt
 import structlog
-from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.sessions import SessionMiddleware
 
+from bus.events import channel_for_task
+from bus.redis_bus import subscribe_events
 from config import get_settings
-from graph.agents.github_agent import GitHubAgent
-from graph.rag_flow import run_rag_flow
-from graph.router import classify_domain
-from routes.admin import router as admin_router
 from routes.agents import router as agents_router
 from routes.apikeys import router as apikeys_router
 from routes.approvals import router as approvals_router
-from routes.assistant import router as assistant_router
 from routes.auth import limiter
 from routes.auth import router as auth_router
-from routes.dependencies import get_current_user
-from routes.generated_files import router as generated_files_router
-from routes.github import router as github_router
-from routes.memory import router as memory_router
-from routes.plan import router as plan_router
 from routes.preferences import router as preferences_router
-from routes.system import router as system_router
 from routes.tasks import router as tasks_router
-from routes.tools import router as tools_router
-from routes.updates import router as updates_router
-from routes.uploads import router as uploads_router
-from services import orchestrator
-from services.activity import log_activity
 from services.db import get_db, init_db
-from tools.github_auth import get_github_token
-
-settings = get_settings()
-SECRET_KEY = settings.jwt_secret
-ALGORITHM = "HS256"
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-from bus.redis_bus import publish_event, subscribe_events  # noqa: E402
-
+settings = get_settings()
+SECRET_KEY = settings.jwt_secret
+ALGORITHM = "HS256"
 log = structlog.get_logger()
 
-app = FastAPI(title="Cross-Border Ops API", version="2.0.0")
+app = FastAPI(title="E-commerce Ops API", version="2.0.0")
 
 
 @app.on_event("startup")
@@ -64,34 +45,18 @@ async def startup():
     log.info("database_pool_initialized")
 
 
-# ── 注册路由 ──────────────────────────────────────────────────
-app.include_router(admin_router)
-app.include_router(auth_router)
-app.include_router(uploads_router)
-app.include_router(generated_files_router)
-app.include_router(system_router)
-app.include_router(plan_router)
-app.include_router(apikeys_router)
-app.include_router(assistant_router)
-app.include_router(github_router)
-app.include_router(updates_router)
-app.include_router(preferences_router)
-app.include_router(memory_router)
-app.include_router(tools_router)
-# —— 运营中台新增 ——
-app.include_router(tasks_router)
-app.include_router(approvals_router)
-app.include_router(agents_router)
+# ── 路由注册 ──────────────────────────────────────────────────
+app.include_router(auth_router)  # 账号：注册 / 登录 / 会话
+app.include_router(apikeys_router)  # 用户自带的 LLM Key
+app.include_router(preferences_router)  # 用户偏好（如选用的模型）
+# —— 运营中台核心 ——
+app.include_router(tasks_router)  # POST /tasks、GET /tasks/{id}、resume
+app.include_router(approvals_router)  # GET /approvals、approve / reject
+app.include_router(agents_router)  # GET /agents
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SessionMiddleware, secret_key=settings.jwt_secret)
-
-if settings.environment != "production":
-    print("REGISTERED ROUTES:")
-    for route in app.routes:
-        print(getattr(route, "path", route))
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -110,71 +75,33 @@ async def security_headers(request, call_next):
     return response
 
 
+# ── 探针 ──────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
-    return {"status": "ok", "env": settings.environment, "service": "cross-border-ops"}
+    """存活探针：进程可用即返回 ok。"""
+    return {"status": "ok", "env": settings.environment, "service": "e-commerce-ops"}
 
 
-# ── 兼容入口：POST /run ───────────────────────────────────────
-@app.post("/run")
-@limiter.limit("10/minute")
-async def run_agent(request: Request, payload: dict, user=Depends(get_current_user)) -> dict:
-    run_id = str(uuid.uuid4())
-    goal = payload.get("goal", "")
-    context_files = payload.get("context_files", [])
-    params = payload.get("params", {}) or {}
-
-    pool = await get_db()
-    if not pool:
-        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
-
-    # ── GitHub 命令（沿用原有能力）────────────────────────────
-    if goal.startswith("/git"):
-        token = await get_github_token(user["id"])
-        if not token:
-            return {"success": False, "message": "No GitHub token saved"}
-        result = GitHubAgent(token).run(goal[1:])
-        return {"run_id": run_id, "github": True, "result": str(result)}
-
-    # ── RAG 知识库问答（客服知识库复用）───────────────────────
-    if goal.lower().startswith("/rag") and context_files:
-        asyncio.create_task(_run_rag(run_id, goal, context_files, str(user["id"])))
-        return {"run_id": run_id, "route": "rag"}
-
-    # ── 运营任务：创建后由编排器后台执行 ──────────────────────
-    task_type = classify_domain(goal)
-    task_id = await orchestrator.create_task_row(str(user["id"]), task_type, goal, params)
-
-    await log_activity("task", "运营任务已创建(/run)", f"[{task_type}] {goal[:80]}")
-
-    asyncio.create_task(
-        orchestrator.run_task(
-            task_id=task_id, goal=goal, task_type=task_type, params=params,
-            context_files=context_files, user_id=str(user["id"]), run_id=run_id,
-        )
-    )
-
-    return {"run_id": run_id, "task_id": task_id, "route": task_type, "user": user["email"]}
-
-
-async def _run_rag(run_id: str, goal: str, context_files: list, user_id: str) -> None:
+@app.get("/ready")
+async def ready():
+    """就绪探针：确认数据库连接可用。"""
     try:
-        result = await run_rag_flow(goal=goal, context_files=context_files, user_id=user_id)
-        await publish_event(run_id, {
-            "node": "researcher",
-            "messages": [result.get("answer", "")],
-            "sources": result.get("sources", []),
-            "approved": result.get("approved", False),
-        })
-        await publish_event(run_id, {"type": "done"})
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        return {"status": "ready", "database": "ok"}
     except Exception as e:  # noqa: BLE001
-        await publish_event(run_id, {"node": "system", "messages": [], "error": str(e)})
+        raise HTTPException(status_code=503, detail=f"database unavailable: {e}") from e
 
 
-# ── WebSocket：任务/审批实时事件 ──────────────────────────────
-@app.websocket("/ws/{run_id}")
-async def websocket_endpoint(ws: WebSocket, run_id: str):
-    token = ws.cookies.get("xbops_token")
+# ── WebSocket：任务 / 审批实时事件 ────────────────────────────
+@app.websocket("/ws/tasks/{task_id}")
+async def ws_task_events(ws: WebSocket, task_id: str):
+    """
+    订阅 task:{task_id} 频道，实时推送 task.* / agent.* / approval.* 事件。
+    鉴权：Cookie 中的 ops_token（JWT）+ 数据库会话校验。
+    """
+    token = ws.cookies.get("ops_token")
     if not token:
         await ws.close(code=1008)
         return
@@ -185,7 +112,6 @@ async def websocket_endpoint(ws: WebSocket, run_id: str):
         if not jti:
             await ws.close(code=1008)
             return
-
         pool = await get_db()
         async with pool.acquire() as conn:
             session = await conn.fetchrow(
@@ -204,19 +130,14 @@ async def websocket_endpoint(ws: WebSocket, run_id: str):
 
     await ws.accept()
     try:
-        async for event in subscribe_events(run_id):
-            if (event.get("node") == "system" and not event.get("error")
-                    and not any(event.get("messages", []))):
-                continue
+        async for event in subscribe_events(channel_for_task(task_id)):
             await ws.send_json(event)
-            if event.get("type") in ("done", "task.completed", "task.failed"):
-                break
-            if event.get("error"):
+            if event.get("type") in ("task.completed", "task.failed"):
                 break
     except WebSocketDisconnect:
-        log.info("ws_disconnected", run_id=run_id)
+        log.info("ws_disconnected", task_id=task_id)
     except Exception as e:  # noqa: BLE001
-        log.error("ws_error", run_id=run_id, error=str(e))
+        log.error("ws_error", task_id=task_id, error=str(e))
     finally:
         if ws.client_state.name != "DISCONNECTED":
             try:

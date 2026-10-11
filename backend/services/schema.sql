@@ -1,5 +1,5 @@
 -- ==============================================================
---  跨境电商运营中台 —— 数据库 Schema（集中建表脚本）
+--  电商运营中台 —— 数据库 Schema（集中建表脚本）
 --  由 services/db.py::init_db() 在启动时执行（幂等，IF NOT EXISTS）
 --  全部使用 Python 生态可访问的 PostgreSQL，无外部依赖
 -- ==============================================================
@@ -25,35 +25,18 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_jti ON sessions (token_jti);
 
 CREATE TABLE IF NOT EXISTS user_api_keys (
-    user_id      UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    groq_key     TEXT DEFAULT '',
-    serpapi_key  TEXT DEFAULT '',
-    github_token TEXT DEFAULT '',
-    updated_at   TIMESTAMPTZ DEFAULT NOW()
+    user_id    UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    groq_key   TEXT DEFAULT '',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS user_preferences (
-    user_id          UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    model            TEXT DEFAULT 'llama-3.3-70b-versatile',
-    web_search       BOOLEAN DEFAULT TRUE,
-    smart_cache      BOOLEAN DEFAULT FALSE,
-    smart_suggestion BOOLEAN DEFAULT TRUE,
-    rag_threshold    REAL DEFAULT 1.5,
-    updated_at       TIMESTAMPTZ DEFAULT NOW()
+    user_id    UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    model      TEXT DEFAULT 'llama-3.3-70b-versatile',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── 运行缓存与活动日志 ────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS cached_runs (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id    TEXT NOT NULL,
-    route      TEXT NOT NULL,
-    goal       TEXT NOT NULL,
-    result     TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_cached_runs_lookup
-    ON cached_runs (user_id, route, lower(goal));
-
+-- ── 活动日志（登录 / 建任务等审计）─────────────────────────────
 CREATE TABLE IF NOT EXISTS activity_logs (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type        TEXT NOT NULL,
@@ -62,39 +45,8 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── 通用运行记录（保留，兼容旧前端 /run）──────────────────────
-CREATE TABLE IF NOT EXISTS agent_runs (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     UUID,
-    goal        TEXT NOT NULL,
-    status      TEXT NOT NULL DEFAULT 'running',
-    events      JSONB NOT NULL DEFAULT '[]',
-    tokens_used INTEGER NOT NULL DEFAULT 0,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs (status);
-
-CREATE TABLE IF NOT EXISTS assistant_memory (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id    TEXT NOT NULL,
-    topic      TEXT NOT NULL,
-    summary    TEXT NOT NULL,
-    category   TEXT DEFAULT 'general',
-    source     TEXT DEFAULT 'platform',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS uploaded_files (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id    UUID,
-    filename   TEXT NOT NULL,
-    path       TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- ==============================================================
---  跨境电商运营中台 —— 领域业务表
+--  电商运营中台 —— 领域业务表
 -- ==============================================================
 
 -- ── 运营任务（一次运营目标的完整生命周期）─────────────────────

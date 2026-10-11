@@ -1,4 +1,12 @@
-# 改造计划：通用多 Agent 任务执行平台 → 跨境电商运营中台
+# 改造计划：通用多 Agent 任务执行平台 → 电商运营中台
+
+> ⚠️ **历史文档（归档）**：本文件记录改造**起步阶段**的计划与现状盘点，其中的接口名
+> （如 `/run`、`run:{run_id}`、沙箱执行器）为改造前的原始形态，**已不代表当前实现**。
+> 当前架构与接口以 [`ARCHITECTURE.md`](ARCHITECTURE.md)、[`APPROVAL_FLOW.md`](APPROVAL_FLOW.md)
+> 与根目录 [`README.md`](../README.md) 为准；后续的收缩与工程化整改见
+> [`RECTIFICATION_PLAN.md`](RECTIFICATION_PLAN.md)。
+
+---
 
 > 改造对象：开源项目 Multi Agent Orchestration（MIT，通用多 Agent 任务执行平台）
 > 技术栈保持不变：Python / FastAPI / LangGraph / PostgreSQL / Redis Pub/Sub / Docker 沙箱 / WebSocket
@@ -10,7 +18,7 @@
 
 | 层 | 现状 | 与目标差距 |
 |----|------|-----------|
-| Agent | `graph/agents/` 下 `planner / researcher / coder / critic / github_agent`（通用） | 需替换为 5 个跨境电商专业 Agent + 运营主管 |
+| Agent | `graph/agents/` 下 `planner / researcher / coder / critic / github_agent`（通用） | 需替换为 5 个电商专业 Agent + 运营主管 |
 | 编排 | `supervisor.py` 固定路由 4 个通用节点；`build_graph.py` 无 checkpointer | 需改为「目标→依赖 DAG→领域路由→汇总」，并支持 `interrupt()` |
 | 状态 | `state.py` 为通用 `goal/plan/results` | 需扩展任务类型、DAG、审批、执行记录等字段 |
 | 工具 | `tools/` 仅 `web_search / rag_retriever / code_executor / ocr / vision` | 需新增 13 个领域工具（含 Pydantic IO schema） |
@@ -116,7 +124,7 @@
 
 ### F. 配置与示例数据
 
-- **新增** `.env.example`（当前缺失）：跨境配置（各领域 API Key、`APPROVAL_THRESHOLD_*`、`AGENT_MAX_CONCURRENCY`、`HITL_ENABLED`、`MOCK_ENABLED` 等）。
+- **新增** `.env.example`（当前缺失）：领域配置（各领域 API Key、`APPROVAL_THRESHOLD_*`、`AGENT_MAX_CONCURRENCY`、`HITL_ENABLED`、`MOCK_ENABLED` 等）。
 - `backend/config.py`：新增审批阈值（美元分档）、并发数、HITL 开关、领域数据源开关。
 - **新增** `backend/sample_data/*.json`：订单、物流、库存、竞品价格、工单、选品候选、日销数据。
 - **新增** `backend/seed_demo.py`：把示例数据灌入 Postgres，供演示。

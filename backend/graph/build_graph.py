@@ -1,6 +1,6 @@
 # backend/graph/build_graph.py
 # ──────────────────────────────────────────────────────────────
-#  跨境电商运营中台 —— LangGraph 编排图
+#  电商运营中台 —— LangGraph 编排图
 #
 #  拓扑：supervisor 为唯一入口，按 DAG 调度领域 Agent，全部完成后由 critic 校验。
 #  节点：supervisor / planner / selection / order_logistics /
@@ -22,14 +22,17 @@ from graph.agents.weekly_report_agent import weekly_report_node
 from graph.state import AgentState
 from graph.supervisor import DOMAIN_AGENTS, supervisor_node
 
+
 # ── checkpointer（可选）────────────────────────────────────────
 def _make_checkpointer():
     try:
         from langgraph.checkpoint.memory import MemorySaver  # type: ignore
+
         return MemorySaver()
     except Exception:  # noqa: BLE001
         try:
             from langgraph.checkpoint.memory import InMemorySaver  # type: ignore
+
             return InMemorySaver()
         except Exception:  # noqa: BLE001
             return None

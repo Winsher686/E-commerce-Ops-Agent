@@ -26,13 +26,19 @@ async def run(inp: OrderQueryInput) -> OrderQueryOutput:
             rows = [r for r in rows if r.get("status") == inp.status]
 
         orders = [Order(**{k: r.get(k) for k in Order.model_fields}) for r in rows[: inp.limit]]
-        return OrderQueryOutput(task_id=inp.task_id, orders=orders, count=len(orders), source="mock")
+        return OrderQueryOutput(
+            task_id=inp.task_id, orders=orders, count=len(orders), source="mock"
+        )
 
     # ── 真实 API 适配器 ───────────────────────────────────────
     data = await http_get(
         f"{settings.order_api_base}/v1/orders",
-        params={"ids": ",".join(inp.order_ids), "platform": inp.platform,
-                "status": inp.status, "limit": inp.limit},
+        params={
+            "ids": ",".join(inp.order_ids),
+            "platform": inp.platform,
+            "status": inp.status,
+            "limit": inp.limit,
+        },
         headers={"Authorization": f"Bearer {settings.order_api_key}"},
     )
     orders = [Order(**o) for o in data.get("orders", [])]

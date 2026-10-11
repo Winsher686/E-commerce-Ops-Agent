@@ -16,8 +16,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from config import get_settings
 from services.db import get_db
@@ -27,6 +27,7 @@ settings = get_settings()
 # ── 是否支持 LangGraph interrupt ──────────────────────────────
 try:  # pragma: no cover - 取决于已安装版本
     from langgraph.types import interrupt as _lg_interrupt  # type: ignore
+
     HAS_INTERRUPT = True
 except Exception:  # noqa: BLE001
     _lg_interrupt = None
@@ -41,12 +42,18 @@ def level_for_refund(amount_usd: float) -> tuple[str, str]:
         return "auto", f"退款 {amount_usd} USD ≤ {settings.approval_refund_auto_usd}，自动执行"
     if amount_usd <= settings.approval_refund_supervisor_usd:
         return "supervisor", f"退款 {amount_usd} USD 处于主管审批区间"
-    return "manager", f"退款 {amount_usd} USD 超过 {settings.approval_refund_supervisor_usd}，需经理审批"
+    return (
+        "manager",
+        f"退款 {amount_usd} USD 超过 {settings.approval_refund_supervisor_usd}，需经理审批",
+    )
 
 
 def level_for_reship(amount_usd: float, count: int = 1) -> tuple[str, str]:
     if count >= settings.approval_bulk_reship_count:
-        return "supervisor", f"批量补发 {count} 件 ≥ {settings.approval_bulk_reship_count}，需主管审批"
+        return (
+            "supervisor",
+            f"批量补发 {count} 件 ≥ {settings.approval_bulk_reship_count}，需主管审批",
+        )
     if amount_usd <= settings.approval_reship_auto_usd:
         return "auto", f"补发 {amount_usd} USD ≤ {settings.approval_reship_auto_usd}，自动执行"
     return "supervisor", f"补发 {amount_usd} USD 超过阈值，需主管审批"
@@ -58,7 +65,10 @@ def level_for_price_change(pct: float) -> tuple[str, str]:
         return "auto", f"改价 {p:.1f}% ≤ {settings.approval_price_change_auto_pct}%，自动执行"
     if p <= settings.approval_price_change_supervisor_pct:
         return "supervisor", f"改价 {p:.1f}% 处于主管审批区间"
-    return "manager", f"改价 {p:.1f}% 超过 {settings.approval_price_change_supervisor_pct}%，需经理审批"
+    return (
+        "manager",
+        f"改价 {p:.1f}% 超过 {settings.approval_price_change_supervisor_pct}%，需经理审批",
+    )
 
 
 def decide_level(operation_type: str, payload: dict[str, Any]) -> tuple[str, str]:
@@ -79,12 +89,7 @@ def decide_level(operation_type: str, payload: dict[str, Any]) -> tuple[str, str
 def operation_key(operation_type: str, payload: dict[str, Any]) -> str:
     """生成操作的业务主键，用于“已批准操作”在白名单中匹配。"""
     op = (operation_type or "").lower()
-    ident = (
-        payload.get("order_id")
-        or payload.get("sku")
-        or payload.get("id")
-        or "global"
-    )
+    ident = payload.get("order_id") or payload.get("sku") or payload.get("id") or "global"
     return f"{op}:{ident}"
 
 
@@ -96,8 +101,8 @@ def build_request(
     operation_type: str,
     payload: dict[str, Any],
     *,
-    task_id: Optional[str] = None,
-    subtask_id: Optional[str] = None,
+    task_id: str | None = None,
+    subtask_id: str | None = None,
     amount_usd: float = 0.0,
     reason: str = "",
 ) -> dict[str, Any]:
@@ -115,7 +120,7 @@ def build_request(
         "reason": reason or why,
         "decided_by": None,
         "decided_at": None,
-        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "requested_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -147,9 +152,9 @@ async def persist_approval(record: dict[str, Any]) -> str:
     return record["id"]
 
 
-async def update_approval(approval_id: str, status: str,
-                          decided_by: Optional[str] = None,
-                          reason: Optional[str] = None) -> None:
+async def update_approval(
+    approval_id: str, status: str, decided_by: str | None = None, reason: str | None = None
+) -> None:
     pool = await get_db()
     if pool is None:
         return
@@ -163,11 +168,14 @@ async def update_approval(approval_id: str, status: str,
                 decided_at = NOW()
             WHERE id = $4
             """,
-            status, decided_by, reason, _as_uuid(approval_id),
+            status,
+            decided_by,
+            reason,
+            _as_uuid(approval_id),
         )
 
 
-async def get_approval(approval_id: str) -> Optional[dict]:
+async def get_approval(approval_id: str) -> dict | None:
     pool = await get_db()
     if pool is None:
         return None
@@ -176,7 +184,7 @@ async def get_approval(approval_id: str) -> Optional[dict]:
     return dict(row) if row else None
 
 
-async def list_approvals(status: Optional[str] = None, limit: int = 100) -> list[dict]:
+async def list_approvals(status: str | None = None, limit: int = 100) -> list[dict]:
     pool = await get_db()
     if pool is None:
         return []
@@ -184,7 +192,8 @@ async def list_approvals(status: Optional[str] = None, limit: int = 100) -> list
         if status:
             rows = await conn.fetch(
                 "SELECT * FROM approvals WHERE status = $1 ORDER BY requested_at DESC LIMIT $2",
-                status, limit,
+                status,
+                limit,
             )
         else:
             rows = await conn.fetch(
@@ -201,11 +210,11 @@ async def gate(
     agent: str,
     operation_type: str,
     payload: dict[str, Any],
-    task_id: Optional[str] = None,
-    subtask_id: Optional[str] = None,
+    task_id: str | None = None,
+    subtask_id: str | None = None,
     amount_usd: float = 0.0,
     reason: str = "",
-    preapproved: Optional[list[str]] = None,
+    preapproved: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     高风险操作前的统一入口。返回：
@@ -216,8 +225,13 @@ async def gate(
     - pending   ：需要审批但当前无法阻塞（未挂 checkpointer）→ 落库等待
     """
     record = build_request(
-        agent, operation_type, payload,
-        task_id=task_id, subtask_id=subtask_id, amount_usd=amount_usd, reason=reason,
+        agent,
+        operation_type,
+        payload,
+        task_id=task_id,
+        subtask_id=subtask_id,
+        amount_usd=amount_usd,
+        reason=reason,
     )
 
     # 自动区间或 HITL 关闭 → 直接放行
@@ -238,19 +252,22 @@ async def gate(
 
     # 若当前图支持 interrupt，则在此暂停，等待人工决议后恢复
     if HAS_INTERRUPT:
-        decision = _lg_interrupt({  # type: ignore[misc]
-            "approval_id": record["id"],
-            "operation_type": operation_type,
-            "required_level": record["required_level"],
-            "payload": payload,
-            "reason": record["reason"],
-        })
+        decision = _lg_interrupt(
+            {  # type: ignore[misc]
+                "approval_id": record["id"],
+                "operation_type": operation_type,
+                "required_level": record["required_level"],
+                "payload": payload,
+                "reason": record["reason"],
+            }
+        )
         # 恢复后 decision 为审批接口写入的 {"approved": bool, "decided_by": str, "reason": str}
         approved = bool((decision or {}).get("approved"))
         record["status"] = "approved" if approved else "rejected"
         record["decided_by"] = (decision or {}).get("decided_by")
-        await update_approval(record["id"], record["status"],
-                              record["decided_by"], (decision or {}).get("reason"))
+        await update_approval(
+            record["id"], record["status"], record["decided_by"], (decision or {}).get("reason")
+        )
         return {"action": record["status"], "approval": record}
 
     # 降级：无法阻塞 → 标记待审批，Agent 应结束本轮
@@ -260,10 +277,11 @@ async def gate(
 # ── 工具函数 ──────────────────────────────────────────────────
 def _json(v: Any) -> str:
     import json
+
     return json.dumps(v, ensure_ascii=False, default=str)
 
 
-def _as_uuid(value: Optional[str]):
+def _as_uuid(value: str | None):
     """DB 中 task_id/approval_id 为 UUID；非法值返回 None 以免报错。"""
     if not value:
         return None

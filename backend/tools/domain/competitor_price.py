@@ -35,7 +35,9 @@ async def run(inp: CompetitorPriceInput) -> CompetitorPriceOutput:
         ]
         prices = [i.price for i in items if i.price > 0]
         return CompetitorPriceOutput(
-            task_id=inp.task_id, sku=inp.sku, market=inp.market,
+            task_id=inp.task_id,
+            sku=inp.sku,
+            market=inp.market,
             items=items,
             min_price=min(prices) if prices else 0.0,
             max_price=max(prices) if prices else 0.0,
@@ -53,7 +55,10 @@ async def run(inp: CompetitorPriceInput) -> CompetitorPriceOutput:
     items = [CompetitorPriceItem(**i) for i in data.get("items", [])]
     prices = [i.price for i in items if i.price > 0]
     return CompetitorPriceOutput(
-        task_id=inp.task_id, sku=inp.sku, market=inp.market, items=items,
+        task_id=inp.task_id,
+        sku=inp.sku,
+        market=inp.market,
+        items=items,
         min_price=min(prices) if prices else 0.0,
         max_price=max(prices) if prices else 0.0,
         avg_price=round(sum(prices) / len(prices), 2) if prices else 0.0,

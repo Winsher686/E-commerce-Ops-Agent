@@ -1,0 +1,18 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["__pycache__", "sample_data"]
+
+[tool.ruff.lint]
+# E/W 基础错误与告警，F pyflakes，I 导入排序，UP 语法升级，B bugbear
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "B008",   # FastAPI Depends()/Field() 作为默认值是惯用法
+    "E501",   # 行宽由 formatter 控制
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "services", "routes", "graph", "tools", "bus"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

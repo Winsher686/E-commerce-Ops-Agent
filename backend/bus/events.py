@@ -1,6 +1,6 @@
 # backend/bus/events.py
 # ──────────────────────────────────────────────────────────────
-#  跨境电商运营中台 —— Redis Pub/Sub 事件规范
+#  电商运营中台 —— Redis Pub/Sub 事件规范
 #  统一定义事件类型、频道命名与发布辅助函数。
 #
 #  事件类型：
@@ -24,25 +24,32 @@ from typing import Any
 from bus.redis_bus import publish_event
 
 # ── 事件类型常量 ──────────────────────────────────────────────
-TASK_CREATED        = "task.created"
-TASK_DECOMPOSED     = "task.decomposed"
-TASK_COMPLETED      = "task.completed"
-TASK_FAILED         = "task.failed"
+TASK_CREATED = "task.created"
+TASK_DECOMPOSED = "task.decomposed"
+TASK_COMPLETED = "task.completed"
+TASK_FAILED = "task.failed"
 
-AGENT_STARTED       = "agent.started"
-AGENT_COMPLETED     = "agent.completed"
-AGENT_FAILED        = "agent.failed"
+AGENT_STARTED = "agent.started"
+AGENT_COMPLETED = "agent.completed"
+AGENT_FAILED = "agent.failed"
 
-APPROVAL_REQUESTED  = "approval.requested"
-APPROVAL_GRANTED    = "approval.granted"
-APPROVAL_REJECTED   = "approval.rejected"
+APPROVAL_REQUESTED = "approval.requested"
+APPROVAL_GRANTED = "approval.granted"
+APPROVAL_REJECTED = "approval.rejected"
 
-TOOL_CALLED         = "tool.called"
+TOOL_CALLED = "tool.called"
 
 ALL_EVENT_TYPES = {
-    TASK_CREATED, TASK_DECOMPOSED, TASK_COMPLETED, TASK_FAILED,
-    AGENT_STARTED, AGENT_COMPLETED, AGENT_FAILED,
-    APPROVAL_REQUESTED, APPROVAL_GRANTED, APPROVAL_REJECTED,
+    TASK_CREATED,
+    TASK_DECOMPOSED,
+    TASK_COMPLETED,
+    TASK_FAILED,
+    AGENT_STARTED,
+    AGENT_COMPLETED,
+    AGENT_FAILED,
+    APPROVAL_REQUESTED,
+    APPROVAL_GRANTED,
+    APPROVAL_REJECTED,
     TOOL_CALLED,
 }
 
@@ -86,12 +93,15 @@ async def emit_agent_started(task_id: str, agent: str, subtask_id: str | None = 
     await emit(task_id, AGENT_STARTED, agent=agent, subtask_id=subtask_id, **kw)
 
 
-async def emit_agent_completed(task_id: str, agent: str, subtask_id: str | None = None,
-                               output: Any = None, **kw) -> None:
+async def emit_agent_completed(
+    task_id: str, agent: str, subtask_id: str | None = None, output: Any = None, **kw
+) -> None:
     await emit(task_id, AGENT_COMPLETED, agent=agent, subtask_id=subtask_id, output=output, **kw)
 
 
-async def emit_agent_failed(task_id: str, agent: str, error: str, subtask_id: str | None = None, **kw) -> None:
+async def emit_agent_failed(
+    task_id: str, agent: str, error: str, subtask_id: str | None = None, **kw
+) -> None:
     await emit(task_id, AGENT_FAILED, agent=agent, subtask_id=subtask_id, error=error, **kw)
 
 
@@ -99,14 +109,23 @@ async def emit_approval_requested(task_id: str, approval: dict, **kw) -> None:
     await emit(task_id, APPROVAL_REQUESTED, approval=approval, **kw)
 
 
-async def emit_approval_granted(task_id: str, approval_id: str, decided_by: str | None = None, **kw) -> None:
+async def emit_approval_granted(
+    task_id: str, approval_id: str, decided_by: str | None = None, **kw
+) -> None:
     await emit(task_id, APPROVAL_GRANTED, approval_id=approval_id, decided_by=decided_by, **kw)
 
 
-async def emit_approval_rejected(task_id: str, approval_id: str, decided_by: str | None = None,
-                                 reason: str | None = None, **kw) -> None:
-    await emit(task_id, APPROVAL_REJECTED, approval_id=approval_id,
-               decided_by=decided_by, reason=reason, **kw)
+async def emit_approval_rejected(
+    task_id: str, approval_id: str, decided_by: str | None = None, reason: str | None = None, **kw
+) -> None:
+    await emit(
+        task_id,
+        APPROVAL_REJECTED,
+        approval_id=approval_id,
+        decided_by=decided_by,
+        reason=reason,
+        **kw,
+    )
 
 
 async def emit_tool_called(task_id: str, agent: str, tool: str, ok: bool = True, **kw) -> None:
